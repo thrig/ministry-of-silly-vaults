@@ -1,0 +1,77 @@
+#!/usr/bin/env perl
+#
+# Generates circular vaults of a given radius over an incremented
+# divisor; this divisor with higher values will produce an increasingly
+# filled-in circumference.
+#
+# Usage:
+#   ./circulator 7
+
+use strict;
+use warnings;
+use List::UtilsBy qw(sort_by);
+use Math::Trig;
+
+sub FLOOR () { '.' }
+sub WALL ()  { '#' }
+
+die "Usage: $0 circle-radius\n" if @ARGV != 1;
+my $radius = int(shift);
+die "radius must be a positive integer\n" if $radius < 1;
+
+my $divider = 1;
+my $extra   = 4;
+my %sig_seen;
+while ( $extra > 0 ) {
+    my ( $angle, @points ) = points_of_circle( $radius, $divider );
+    my $sig = signature( \@points );
+
+    if ( $sig_seen{$sig}++ ) {
+        $extra--;
+        next;
+    } else {
+        $extra++;
+    }
+
+    my @grid;
+    for my $p (@points) {
+        $grid[ $radius + $p->[0] ][ $radius + $p->[1] ] = WALL;
+    }
+    for my $r ( 0 .. $#grid ) {
+        for my $c ( 0 .. $#grid ) {    # assume symmetric
+            print $grid[$r][$c] // FLOOR;
+        }
+        print "\n" unless $r == $#grid;
+    }
+    print " a=$angle (pi/$divider)\n\n";
+} continue {
+    $divider++;
+}
+
+sub points_of_circle {
+    my ( $radius, $divider ) = @_;
+
+    my %points_seen;
+
+    my $angle  = 0;
+    my $circle = pi * 2;
+    my $step   = pi / $divider;
+
+    while ( $angle < $circle ) {
+        my @loc = (
+            0 + sprintf( "%.f", $radius * cos($angle) ),
+            0 + sprintf( "%.f", $radius * sin($angle) )
+        );
+        my $key = join ",", @loc;
+        $points_seen{$key} = \@loc if !exists $points_seen{$key};
+        $angle += $step;
+    }
+
+    return $step, values %points_seen;
+}
+
+sub signature {
+    join ";",
+      map { join ",", @$_ }
+      sort_by { sprintf "%04d%04d", $_->[0], $_->[1] } @{ $_[0] };
+}

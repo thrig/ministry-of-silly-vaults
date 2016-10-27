@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+#
+# Draws spirals. This one will need tweaking.
+
+use strict;
+use warnings;
+use Math::Trig;
+
+sub FLOOR () { '.' }
+sub WALL ()  { '#' }
+
+my $angle = 0;
+# TWEAK fiddle around with these
+my $angle_step  = pi / ( 365 * 8 );
+my $radius      = 3;
+my $radius_step = 0.04;
+
+my @grid;
+my $grid_min = 0;
+# TWEAK if need to better position something...
+my $grid_max = 23;
+my $start_x  = $grid_max / 2 - 2;
+my $start_y  = $grid_max / 2;
+
+while (1) {
+    # TWEAK or with more or less random
+    my @point = (
+        $start_x + sprintf( "%.f", $radius * cos($angle) + rand(1.1) ),
+        $start_y + sprintf( "%.f", $radius * sin($angle) + rand(1.1) )
+    );
+    last unless inbound(@point);
+    $grid[ $point[0] ][ $point[1] ] = WALL;
+    $radius += $radius_step;
+    # TWEAK angle may need less sweep as radius increases. Or not.
+    $angle += $angle_step / ( $radius * 0.003 );
+}
+
+for my $r ( 0 .. $grid_max ) {
+    for my $c ( 0 .. $grid_max ) {
+        print $grid[$r][$c] // FLOOR;
+    }
+    print "\n";
+}
+
+sub inbound {
+    (        $_[0] < $grid_min
+          or $_[0] > $grid_max
+          or $_[1] < $grid_min
+          or $_[1] > $grid_max
+    ) ? 0 : 1;
+}
