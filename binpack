@@ -1,0 +1,146 @@
+#!/usr/bin/env perl
+#
+# Puts some random rectangles in a grid. Connects them with doors.
+
+use strict;
+use warnings;
+use Algorithm::BinPack::2D;
+
+sub CORNER ()                 { '#' }
+sub DOOR ()                   { '+' }
+sub DOOR_ME_MAYBE ()          { 'y' }
+sub FLOOR ()                  { '.' }
+sub THE_VOID_THAT_CONSUMES () { ' ' }
+sub WALL ()                   { '#' }
+sub WALL_OR_NOT ()            { 'x' }
+
+# TWEAK these
+my $packer     = Algorithm::BinPack::2D->new( binwidth => 78, binheight => 20 );
+my $rect_count = 17;
+my @lengths    = qw(3 3 3 3 5 5 5 6 6 7 7 8 9 10 11 12);
+
+for my $n ( 1 .. $rect_count ) {
+    my %attr = ( label => "rect$n" );
+    my $area;
+    do {
+        @attr{qw/width height/} = map $lengths[ rand @lengths ], 1 .. 2;
+        $area = $attr{width} * $attr{height};
+    } until ( $area > 8 and $area < 80 );    # TWEAK goldilocks
+    $packer->add_item(%attr);
+}
+
+my @grid;
+my $grid_width;
+my $grid_height;
+
+my $bin = ( $packer->pack_bins )[0];
+$grid_width  = $bin->{width};
+$grid_height = $bin->{height};
+
+for my $sq ( @{ $bin->{items} } ) {
+    for my $y ( $sq->{y} + 1 .. $sq->{y} + $sq->{height} - 1 ) {
+        for my $x ( $sq->{x} + 1 .. $sq->{x} + $sq->{width} - 1 ) {
+            $grid[$y][$x] = FLOOR;
+        }
+    }
+
+    for my $y ( $sq->{y} + 1 .. $sq->{y} + $sq->{height} - 1 ) {
+        if ( !defined $grid[$y][ $sq->{x} ] ) {
+            $grid[$y][ $sq->{x} ] = WALL_OR_NOT;
+        } elsif ( $grid[$y][ $sq->{x} ] eq WALL_OR_NOT ) {
+            $grid[$y][ $sq->{x} ] = DOOR_ME_MAYBE;
+        }
+
+        if ( !defined $grid[$y][ $sq->{x} + $sq->{width} ] ) {
+            $grid[$y][ $sq->{x} + $sq->{width} ] = WALL_OR_NOT;
+        } elsif ( $grid[$y][ $sq->{x} + $sq->{width} ] eq WALL_OR_NOT ) {
+            $grid[$y][ $sq->{x} + $sq->{width} ] = DOOR_ME_MAYBE;
+        }
+    }
+    for my $x ( $sq->{x} + 1 .. $sq->{x} + $sq->{width} - 1 ) {
+        if ( !defined $grid[ $sq->{y} ][$x] ) {
+            $grid[ $sq->{y} ][$x] = WALL_OR_NOT;
+        } elsif ( $grid[ $sq->{y} ][$x] eq WALL_OR_NOT ) {
+            $grid[ $sq->{y} ][$x] = DOOR_ME_MAYBE;
+        }
+
+        if ( !defined $grid[ $sq->{y} + $sq->{height} ][$x] ) {
+            $grid[ $sq->{y} + $sq->{height} ][$x] = WALL_OR_NOT;
+        } elsif ( $grid[ $sq->{y} + $sq->{height} ][$x] eq WALL_OR_NOT ) {
+            $grid[ $sq->{y} + $sq->{height} ][$x] = DOOR_ME_MAYBE;
+        }
+    }
+
+    $grid[ $sq->{y} ][ $sq->{x} ]                                = CORNER;
+    $grid[ $sq->{y} + $sq->{height} ][ $sq->{x} ]                = CORNER;
+    $grid[ $sq->{y} ][ $sq->{x} + $sq->{width} ]                 = CORNER;
+    $grid[ $sq->{y} + $sq->{height} ][ $sq->{x} + $sq->{width} ] = CORNER;
+}
+
+for my $r ( 0 .. $grid_height ) {
+    for my $c ( 0 .. $grid_width ) {
+        next if !defined $grid[$r][$c];
+        if ( $grid[$r][$c] eq WALL_OR_NOT ) {
+            $grid[$r][$c] = WALL;
+        } elsif ( $grid[$r][$c] eq DOOR_ME_MAYBE ) {
+            indoortinate( $r, $c );
+        }
+    }
+}
+
+my $bin_count = $packer->pack_bins;
+warn "notice: overflowed to $bin_count bins\n" if $bin_count > 1;
+
+for my $r ( 0 .. $grid_height ) {
+    for my $c ( 0 .. $grid_width ) {
+        print $grid[$r][$c] // THE_VOID_THAT_CONSUMES;
+    }
+    print "\n";
+}
+
+# reservoir-sample a door onto either a vertical or horizontal run of
+# potential doors (it is assumed corners will break up any direct links
+# between such runs) with the remainder becoming walls
+sub indoortinate {
+    my ( $r, $c ) = @_;
+
+    $grid[$r][$c] = DOOR;
+
+    my $offset = 1;
+    my $prev   = 0;
+
+    while (1) {
+        if ( defined $grid[ $r + $offset ][$c]
+            and $grid[ $r + $offset ][$c] eq DOOR_ME_MAYBE ) {
+            if ( rand( $offset + 1 ) < 1 ) {
+                $grid[ $r + $prev ][$c]   = WALL;
+                $grid[ $r + $offset ][$c] = DOOR;
+                $prev                     = $offset;
+            } else {
+                $grid[ $r + $offset ][$c] = WALL;
+            }
+            $offset++;
+        } else {
+            last;
+        }
+    }
+    return if $offset > 1;
+
+    $offset = 1;
+    $prev   = 0;
+    while (1) {
+        if ( defined $grid[$r][ $c + $offset ]
+            and $grid[$r][ $c + $offset ] eq DOOR_ME_MAYBE ) {
+            if ( rand( $offset + 1 ) < 1 ) {
+                $grid[$r][ $c + $prev ]   = WALL;
+                $grid[$r][ $c + $offset ] = '+';
+                $prev                     = $offset;
+            } else {
+                $grid[$r][ $c + $offset ] = WALL;
+            }
+            $offset++;
+        } else {
+            last;
+        }
+    }
+}
