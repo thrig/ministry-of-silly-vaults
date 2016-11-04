@@ -33,7 +33,7 @@ int main(void)
     long double complex coord, zeta;
 
     unsigned int **field = make_matrixui(rows, cols);
-    long int index;
+    long index;
     unsigned int stability;
     unsigned int min_stab = UINT_MAX;
     unsigned int max_stab = 0;
@@ -75,7 +75,7 @@ int main(void)
 
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < cols; c++) {
-            index = lroundl(slope * (long double) field[r][c] + intercept);
+            index = lrintl(slope * (long double) field[r][c] + intercept);
             if (index < 0)
                 index = 0;
             else if (index >= FLOOR_TILES - 1)
