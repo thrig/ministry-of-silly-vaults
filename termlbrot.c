@@ -18,15 +18,16 @@ unsigned int **make_matrixui(unsigned int rows, unsigned int cols);
 int main(void)
 {
     // TWEAK area to iterate over
-    const long double run_real[2] = { -1.0, 0 };
+    const long double run_real[2] = { -1.0, 1 };
     const long double run_imag[2] = { -1.5, 0.5 };
     // TWEAK how big the terminal or output canvas is (and thus how much
     // resolution the fractal is displayed at)
     const unsigned int rows = 39;
     const unsigned int cols = 78;
     // TODO can these autoscale depending on how tight the graph is?
-    const unsigned int iterations = 1000;
-    const long double threshold = 120;
+    // (lowering them will a) save CPU and b) increase open space)
+    const unsigned int iterations = 120;
+    const long double threshold = 2;
 
     long double range_real, range_imag;
     long double cur_row, cur_col;
@@ -51,7 +52,8 @@ int main(void)
             coord = cur_col + cur_row * I;
             stability = 0;
             for (unsigned int i = 0; i < iterations; i++) {
-                // TWEAK the equation, if need be
+                // TWEAK the equation, if need be (Julia sets set some
+                // constant for coord and zeta is the r/c value)
                 zeta = zeta * zeta + coord;
                 stability++;
                 if (!isfinite(creal(zeta)) || !isfinite(cimag(zeta))
