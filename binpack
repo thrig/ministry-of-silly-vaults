@@ -104,20 +104,25 @@ for my $r ( 0 .. $grid_height ) {
 sub indoortinate {
     my ( $r, $c ) = @_;
 
-    $grid[$r][$c] = DOOR;
-
     my $offset = 1;
     my $prev   = 0;
+
+    my $eliminate_wall = rand() < 0.01 ? 1 : 0;
+    $grid[$r][$c] = $eliminate_wall ? FLOOR : DOOR;
 
     while (1) {
         if ( defined $grid[ $r + $offset ][$c]
             and $grid[ $r + $offset ][$c] eq DOOR_ME_MAYBE ) {
-            if ( rand( $offset + 1 ) < 1 ) {
-                $grid[ $r + $prev ][$c]   = WALL;
-                $grid[ $r + $offset ][$c] = DOOR;
-                $prev                     = $offset;
+            if ($eliminate_wall) {
+                $grid[ $r + $offset ][$c] = FLOOR;
             } else {
-                $grid[ $r + $offset ][$c] = WALL;
+                if ( rand( $offset + 1 ) < 1 ) {
+                    $grid[ $r + $prev ][$c]   = WALL;
+                    $grid[ $r + $offset ][$c] = DOOR;
+                    $prev                     = $offset;
+                } else {
+                    $grid[ $r + $offset ][$c] = WALL;
+                }
             }
             $offset++;
         } else {
@@ -131,12 +136,16 @@ sub indoortinate {
     while (1) {
         if ( defined $grid[$r][ $c + $offset ]
             and $grid[$r][ $c + $offset ] eq DOOR_ME_MAYBE ) {
-            if ( rand( $offset + 1 ) < 1 ) {
-                $grid[$r][ $c + $prev ]   = WALL;
-                $grid[$r][ $c + $offset ] = '+';
-                $prev                     = $offset;
+            if ($eliminate_wall) {
+                $grid[$r][ $c + $offset ] = FLOOR;
             } else {
-                $grid[$r][ $c + $offset ] = WALL;
+                if ( rand( $offset + 1 ) < 1 ) {
+                    $grid[$r][ $c + $prev ]   = WALL;
+                    $grid[$r][ $c + $offset ] = '+';
+                    $prev                     = $offset;
+                } else {
+                    $grid[$r][ $c + $offset ] = WALL;
+                }
             }
             $offset++;
         } else {
