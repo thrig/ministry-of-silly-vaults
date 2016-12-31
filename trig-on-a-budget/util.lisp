@@ -42,3 +42,12 @@
 
 (defmacro capture-stdout (where &body body)
   `(capture *standard-output* ,where ,@body))
+
+(defmacro repeat (count &body body)
+  (let ((repnum (gensym)))
+    `(progn
+       (if (or (not (integerp ,count)) (< ,count 1))
+         (error "repeat count must be positive integer"))
+       (do ((,repnum ,count (1- ,repnum)))
+         ((< ,repnum 1) (return))
+         (progn ,@body)))))
