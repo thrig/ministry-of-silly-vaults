@@ -42,6 +42,14 @@
 (defmacro capture-stdout (where &body body)
   `(capture *standard-output* ,where ,@body))
 
+(defmacro random-list-item (alist)
+  `(progn
+     (or (listp ,alist)
+       (error "random-list-item needs a list to act on"))
+     (if (= 0 (list-length ,alist))
+       nil
+       (nth (random (list-length ,alist)) ,alist))))
+
 (defmacro repeat (count &body body)
   (let ((repnum (gensym)))
     `(progn

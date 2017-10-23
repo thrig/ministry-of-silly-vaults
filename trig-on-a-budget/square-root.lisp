@@ -8,7 +8,7 @@
 ;(defparameter *lookup-hash* (make-hash-table :test 'equal))
 (defparameter *lookup-array* (make-array (list *boardsize* *boardsize*)))
 
-(load "util.lisp")
+(load "../util.lisp")
 (progn (setq *random-state* (make-random-state t)) t)
 
 ;(defun makekey (x y)

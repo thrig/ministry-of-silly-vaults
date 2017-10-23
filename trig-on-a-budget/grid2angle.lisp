@@ -2,7 +2,7 @@
 ;;; That is, when is it feasible to use a lookup table for trig instead
 ;;; of doing all the necessary math, and at what cost?
 
-(load "util.lisp")
+(load "../util.lisp")
 
 ;;; change this to some (small) positive integer to calc the number of
 ;;; ratios for a given range of board sizes
