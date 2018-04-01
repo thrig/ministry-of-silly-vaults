@@ -58,3 +58,6 @@
        (do ((,repnum ,count (1- ,repnum)))
          ((< ,repnum 1) (return))
          (progn ,@body)))))
+
+(defmacro while (expr &body body)
+  `(tagbody check (if ,expr (progn ,@body (go check)))))

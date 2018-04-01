@@ -45,6 +45,9 @@ Usage & Utilities              ....##............
 
         ./circulator 7
 
+    linewalker
+      walkers converge on a target point, carving out lines
+
     spiralfoo
       spirals, or something akin. code will require tweaking
 

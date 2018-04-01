@@ -21,6 +21,7 @@
 (defparameter *iterations* (round (* (* *rows* *cols*) *fill-percent*)))
 
 (load "util.lisp")
+(load "common.lisp")
 
 (progn (setq *random-state* (make-random-state t)) t)
 
@@ -65,12 +66,6 @@
   (if (< (random 1.0) *door-percent*)
     (draw-at row col *door*)))
 
-(defun display-board ()
-  (dotimes (r *rows*)
-    (dotimes (c *cols*)
-      (format t "~c" (aref *board* r c)))
-    (fresh-line)))
-
 (defun draw-at (row col &optional (icon *edge*))
   (setf (aref *board* row col) icon))
 
@@ -80,12 +75,6 @@
           (push (vector (+ row offset) col) choices)
           (push (vector row (+ col offset)) choices))
     choices))
-
-(defun is-in-bounds (point)
-  (not (cond ((< (aref point 0) 0))
-             ((< (aref point 1) 0))
-             ((>= (aref point 0) *rows*))
-             ((>= (aref point 1) *cols*)))))
 
 (defun is-not-occupied (point)
   (eql (aref *board* (aref point 0) (aref point 1)) *fill*))
