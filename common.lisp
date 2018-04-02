@@ -11,3 +11,6 @@
              ((>= (aref point 1) *cols*)))))
 
 (defun random-point () (list (random *rows*) (random *cols*)))
+(defun random-point-inside () (list
+                                (1+ (random (- *rows* 2)))
+                                (1+ (random (- *cols* 2)))))
