@@ -1,6 +1,10 @@
 (defmacro % (a b)
   `(mod (truncate ,a) (truncate ,b)))
 
+(defun decay (&key (odds 0.1) (min 1) (max 640))
+  (do ((count min (1+ count)))
+    ((or (>= count max) (< (random 1.0) odds)) count)))
+
 (defun deg2rad (degrees)
   (/ (* (round (% degrees 360)) pi) 180))
 (defun rad2deg (radians)
@@ -57,7 +61,21 @@
          (error "repeat count must be positive integer"))
        (do ((,repnum ,count (1- ,repnum)))
          ((< ,repnum 1) (return))
-         (progn ,@body)))))
+         ,@body))))
+
+(defun select-n (n list)
+  (let ((len (list-length list)))
+    (if (> n len)
+      (error "cannot pick ~d items from ~d" n len))
+    (do ((item list (cdr item))
+         (remain len (1- remain))
+         (selection nil)
+         (want n))
+      ((= 0 want) (nreverse selection))
+      (if (< (random remain) (if (= want remain) remain (/ want remain)))
+        (progn
+          (push (car item) selection)
+          (setf want (1- want)))))))
 
 (defmacro while (expr &body body)
   `(tagbody check (if ,expr (progn ,@body (go check)))))

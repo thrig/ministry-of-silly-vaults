@@ -1,6 +1,8 @@
 *.core
 crawlpaper
 noise.aux
+noise.bbl
+noise.blg
 noise.log
 noise.out
 noise.tex.bak

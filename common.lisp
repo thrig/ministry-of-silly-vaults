@@ -31,6 +31,11 @@
              ((>= (aref point 0) *rows*))
              ((>= (aref point 1) *cols*)))))
 
+(defun n-random-points (n &optional (rows *rows*) (cols *cols*))
+  (do ((points nil))
+    ((= n (list-length points)) points)
+    (pushnew (cons (random rows) (random cols)) points :test #'equal)))
+
 (defun random-point () (list (random *rows*) (random *cols*)))
 (defun random-point-inside () (list
                                 (1+ (random (- *rows* 2)))
