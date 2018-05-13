@@ -1,8 +1,29 @@
+(defvar *edge* #\?)
+(defvar *fill* #\?)
+
+(defun draw-at (row col &optional (icon *edge*))
+  (setf (aref *board* row col) icon))
+
+(defun add-a-border (&optional (edge *edge*))
+  (loop for r from 0 to (1- *rows*) do
+        (draw-at r 0 edge)
+        (draw-at r (1- *cols*) edge))
+  (loop for c from 1 to (- *cols* 2) do
+        (draw-at 0 c edge)
+        (draw-at (1- *rows*) c edge)))
+
+(defun clear-board (&optional (fill *fill*))
+  (setf *board* (make-array (list *rows* *cols*)
+                            :element-type 'character
+                            :initial-element fill))
+  (values))
+
 (defun display-board ()
   (dotimes (r *rows*)
     (dotimes (c *cols*)
       (format t "~c" (aref *board* r c)))
-    (fresh-line)))
+    (fresh-line))
+  (values))
 
 (defun is-in-bounds (point)
   (not (cond ((< (aref point 0) 0))

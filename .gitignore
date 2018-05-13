@@ -1,3 +1,7 @@
 *.core
 crawlpaper
+noise.aux
+noise.log
+noise.out
+noise.tex.bak
 termlbrot

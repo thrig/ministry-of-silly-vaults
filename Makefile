@@ -9,7 +9,12 @@ depend:
 	@cpanm --installdeps .
 	@go get github.com/fogleman/gg
 
+noise.pdf: noise.tex
+	xelatex -halt-on-error -interaction=batchmode noise.tex
+
 termlbrot: termlbrot.c
 
 clean:
-	@-rm -f termlbrot >/dev/null 2>&1
+	@-rm -f termlbrot noise.aux noise.log noise.out >/dev/null 2>&1
+
+.PHONY: clean depend

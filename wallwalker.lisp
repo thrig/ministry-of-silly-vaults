@@ -25,14 +25,6 @@
 
 (progn (setq *random-state* (make-random-state t)) t)
 
-(defun add-a-nice-border ()
-  (loop for r from 0 to (1- *rows*) do
-        (draw-at r 0 *edge*)
-        (draw-at r (1- *cols*) *edge*))
-  (loop for c from 1 to (- *cols* 2) do
-        (draw-at 0 c *edge*)
-        (draw-at (1- *rows*) c *edge*)))
-
 (defun add-some-doors ()
   (loop for r from 1 to (- *rows* 2) do
         (loop for c from 1 to (- *cols* 2) do
@@ -65,9 +57,6 @@
 (defun maybe-door (row col)
   (if (< (random 1.0) *door-percent*)
     (draw-at row col *door*)))
-
-(defun draw-at (row col &optional (icon *edge*))
-  (setf (aref *board* row col) icon))
 
 (defun generate-choices (row col)
   (let ((choices nil))
@@ -104,7 +93,7 @@
             (progn (setq row (random *rows*)) (setq col (random *cols*)))
             (progn (setq row (aref newpoint 0)) (setq col (aref newpoint 1))))))
 
-(add-a-nice-border)
+(add-a-border)
 (carve-out-solid-blocks)
 (add-some-doors)
 (display-board)
