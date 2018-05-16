@@ -1,7 +1,7 @@
 (defmacro % (a b)
   `(mod (truncate ,a) (truncate ,b)))
 
-(defun decay (&key (odds 0.1) (min 1) (max 640))
+(defun decay (&key (odds 0.1) (min 1) (max MOST-POSITIVE-FIXNUM))
   (do ((count min (1+ count)))
     ((or (>= count max) (< (random 1.0) odds)) count)))
 
@@ -13,14 +13,21 @@
 (defmacro sethash (hash key &optional (value nil))
   `(setf (gethash ,key ,hash) ,value))
 (defun hash-empty (table)
-  (maphash #'(lambda (k v) (remhash k table)) table))
+  (maphash #'(lambda (k v)
+               (declare (ignore v))
+               (remhash k table)) table))
 (defun show-hash (table)
-  (maphash #'(lambda (k v) (format t "~a=~a~%" k v)) table))
+  (maphash #'(lambda (k v)
+               (format t "~a=~a~%" k v)) table))
 (defun show-hash-keys (table)
-  (maphash #'(lambda (k v) (format t "~a " k)) table)
+  (maphash #'(lambda (k v)
+               (declare (ignore v))
+               (format t "~a " k)) table)
   (fresh-line))
 (defun show-hash-values (table)
-  (maphash #'(lambda (k v) (format t "~a " v)) table)
+  (maphash #'(lambda (k v)
+               (declare (ignore k))
+               (format t "~a " v)) table)
   (fresh-line))
 
 (defmacro append-file (file)
@@ -46,6 +53,9 @@
 (defmacro capture-stdout (where &body body)
   `(capture *standard-output* ,where ,@body))
 
+(defmacro no-return (&body body)
+  `(progn ,@body (values)))
+
 (defmacro random-list-item (alist)
   `(progn
      (or (listp ,alist)
@@ -53,6 +63,14 @@
      (if (= 0 (list-length ,alist))
        nil
        (nth (random (list-length ,alist)) ,alist))))
+
+(defun range (min max &optional (step 1))
+  (if (zerop step) (error "step must not be zero"))
+  (if (and (< max min) (plusp step)) (setf step (* step -1)))
+  (do ((list nil) (op (if (< min max) #'> #'<)))
+    ((funcall op min max) (nreverse list))
+    (push min list)
+    (setf min (+ min step))))
 
 (defmacro repeat (count &body body)
   (let ((repnum (gensym)))
@@ -76,6 +94,9 @@
         (progn
           (push (car item) selection)
           (setf want (1- want)))))))
+
+(defun sign-of (number)
+  (if (minusp number) -1 1))
 
 (defmacro while (expr &body body)
   `(tagbody check (if ,expr (progn ,@body (go check)))))

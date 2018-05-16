@@ -21,9 +21,6 @@
 ;;; efficient to calculate. this could also be done post-generation
 (defparameter *move-odds* 1.5)
 
-(defparameter *board* (make-array (list *rows* *cols*)
-                                  :element-type 'character
-                                  :initial-element *wall*))
 (defparameter *target* nil)
 (defparameter *walkers* nil)
 
@@ -32,42 +29,38 @@
 
 (progn (setq *random-state* (make-random-state t)) t)
 
-(defun draw-at (point &optional (icon *floor*))
-  (setf (aref *board* (first point) (second point)) icon)
-  point)
+(defparameter *board* (make-board *rows* *cols* *wall*))
 
 ;;; the odds of moving on a particular axis depend on the slope of the
-;;; walker and the target; on-axis or 45˚ should be a 100% chance of a
-;;; move in one or both axes while any other slope will vary the odds
+;;; line between the walker and its target; on-axis or 45˚ should be a
+;;; 100% chance of a move in one or both axes while any other slope will
+;;; vary the odds
 (defun move-walker (w)
-  (let ((deltar (- (first *target*) (first w)))
-        (deltac (- (second *target*) (second w)))
-        (newp (copy-list w)))
+  (let ((deltar (- (point-row *target*) (point-row w)))
+        (deltac (- (point-col *target*) (point-col w)))
+        (newp (copy-point w)))
     (if (not (zerop deltar))
       (if (< (random *move-odds*)
              (abs (/ deltar (if (zerop deltac) 1 deltac))))
-        (setf (first newp) (+ (first newp) (if (plusp deltar) 1 -1)))))
+        (set-point-row newp (+ (point-row newp) (sign-of deltar)))))
     (if (not (zerop deltac))
       (if (< (random *move-odds*)
              (abs (/ deltac (if (zerop deltar) 1 deltar))))
-        (setf (second newp) (+ (second newp) (if (plusp deltac) 1 -1)))))
-    (draw-at newp)))
-
-(defun same-point (p1 p2)
-  (and (= (first p1) (first p2)) (= (second p1) (second p2))))
+        (set-point-col newp (+ (point-col newp) (sign-of deltac)))))
+    (draw-at-point newp *floor*)))
 
 (defun update-walker (w)
   (if (same-point w *target*) nil (list (move-walker w))))
 
-(loop for n from 1 to *trials* do
-      (setq *target* (random-point-inside))
-      (setq *walkers* (loop for w from 1 to *walker-count* collect
-                            (random-point-inside)))
-      (while (not (null *walkers*))
-             (setq *walkers* (mapcan #'update-walker *walkers*)))
-      ; this seems a beneficial addition to vary the number of walkers
-      ;(setq *walker-count* (- *walker-count* 5)))
-      (setq *walker-count* (1+ (isqrt *walker-count*))))
+(dotimes (n *trials*)
+  (setq *walkers* (n-random-points (1+ *walker-count*)
+                                   :method #'random-point-inside))
+  (setq *target* (first *walkers*))
+  (setq *walkers* (rest *walkers*))
+  (while (not (null *walkers*))
+         (setq *walkers* (mapcan #'update-walker *walkers*)))
+  ; this seems a beneficial addition to vary the number of walkers
+  (setq *walker-count* (max 1 (isqrt *walker-count*))))
 
 (fresh-line)
 (display-board)

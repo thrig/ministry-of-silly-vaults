@@ -1,42 +1,81 @@
-(defvar *edge* #\?)
-(defvar *fill* #\?)
+;;;;; common routines used by linewalker.lisp noise.lisp wallwalker.lisp
 
-(defun draw-at (row col &optional (icon *edge*))
-  (setf (aref *board* row col) icon))
+(defvar *board* nil)
 
-(defun add-a-border (&optional (edge *edge*))
-  (loop for r from 0 to (1- *rows*) do
-        (draw-at r 0 edge)
-        (draw-at r (1- *cols*) edge))
-  (loop for c from 1 to (- *cols* 2) do
-        (draw-at 0 c edge)
-        (draw-at (1- *rows*) c edge)))
+(defvar *floor* #\.)
+(defvar *door*  #\+)
+(defvar *wall*  #\#)
 
-(defun clear-board (&optional (fill *fill*))
-  (setf *board* (make-array (list *rows* *cols*)
-                            :element-type 'character
-                            :initial-element fill))
-  (values))
+(defvar *rows* 10)
+(defvar *cols* 20)
+
+;;; these are '(0 . 0) points (row . col)
+(defun copy-point (point) (cons (car point) (cdr point)))
+(defun make-point (row col) (cons row col))
+(defun point-row (point) (car point))
+(defun point-col (point) (cdr point))
+(defun set-point (point row col) (rplaca point row) (rplacd point col))
+(defun set-point-row (point value) (rplaca point value))
+(defun set-point-col (point value) (rplacd point value))
+
+(defun draw-at (row col obj)
+  (setf (aref *board* row col)
+        (if (functionp obj) (funcall obj) obj))
+  (list row col))
+(defun draw-at-point (point obj)
+  (setf (aref *board* (point-row point) (point-col point))
+        (if (functionp obj) (funcall obj) obj))
+  point)
+
+(defun get-obj-at (row col) (aref *board* row col))
+(defun get-point-obj (point)
+  (aref *board* (point-row point) (point-col point)))
+
+(defun add-border (&optional (obj *wall*))
+  (no-return
+    (loop for r from 0 to (1- *rows*) do
+          (draw-at r 0 obj)
+          (draw-at r (1- *cols*) obj))
+    (loop for c from 1 to (- *cols* 2) do
+          (draw-at 0 c obj)
+          (draw-at (1- *rows*) c obj))))
+
+(defun clear-board (&optional (obj *floor*))
+  (no-return
+    (dotimes (r *rows*)
+      (dotimes (c *cols*)
+        (draw-at r c obj)))))
 
 (defun display-board ()
-  (dotimes (r *rows*)
-    (dotimes (c *cols*)
-      (format t "~c" (aref *board* r c)))
-    (fresh-line))
-  (values))
+  (no-return
+    (dotimes (r *rows*)
+      (dotimes (c *cols*)
+        (format t "~c" (aref *board* r c)))
+      (fresh-line))))
 
-(defun is-in-bounds (point)
-  (not (cond ((< (aref point 0) 0))
-             ((< (aref point 1) 0))
-             ((>= (aref point 0) *rows*))
-             ((>= (aref point 1) *cols*)))))
+(defun make-board (rows cols &optional (obj *floor*))
+  (make-array (list rows cols)
+              :element-type 'character
+              :initial-element (if (functionp obj) (funcall obj) obj)))
 
-(defun n-random-points (n &optional (rows *rows*) (cols *cols*))
+(defun p-inbounds? (point &optional (rows *rows*) (cols *cols*))
+  (not (cond ((< (point-row point) 0))
+             ((< (point-col point) 0))
+             ((>= (point-row point) rows))
+             ((>= (point-col point) cols)))))
+
+(defun random-point (&optional (rows *rows*) (cols *cols*))
+  (make-point (random rows)
+              (random cols)))
+
+(defun random-point-inside (&optional (rows *rows*) (cols *cols*))
+  (make-point (1+ (random (- rows 2)))
+              (1+ (random (- cols 2)))))
+
+(defun n-random-points (n &key (rows *rows*) (cols *cols*)
+                          (method #'random-point))
   (do ((points nil))
     ((= n (list-length points)) points)
-    (pushnew (cons (random rows) (random cols)) points :test #'equal)))
+    (pushnew (funcall method rows cols) points :test #'equal)))
 
-(defun random-point () (list (random *rows*) (random *cols*)))
-(defun random-point-inside () (list
-                                (1+ (random (- *rows* 2)))
-                                (1+ (random (- *cols* 2)))))
+(defun same-point (p1 p2) (equal p1 p2))
