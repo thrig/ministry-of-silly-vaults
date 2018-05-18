@@ -30,7 +30,7 @@
     (dolist (deltar (range -1 1))
       (dolist (deltac (range -1 1))
         (and (eq (get-obj-at (+ row deltar) (+ col deltac)) obj)
-             (setq count (1+ count)))))
+             (incf count))))
     count))
 
 (defun carve-out-solid-blocks ()

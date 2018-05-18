@@ -93,7 +93,7 @@
       (if (< (random remain) (if (= want remain) remain (/ want remain)))
         (progn
           (push (car item) selection)
-          (setf want (1- want)))))))
+          (decf want))))))
 
 (defun sign-of (number)
   (if (minusp number) -1 1))
