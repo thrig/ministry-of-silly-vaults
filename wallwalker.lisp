@@ -27,11 +27,10 @@
 ; NOTE assumes that one is not working at the edges of the board
 (defun peer-count (row col obj)
   (let ((count -1))                     ; self not included in the count
-    (dolist (deltar (range -1 1))
+    (dolist (deltar (range -1 1) count)
       (dolist (deltac (range -1 1))
         (and (eq (get-obj-at (+ row deltar) (+ col deltac)) obj)
-             (incf count))))
-    count))
+             (incf count))))))
 
 (defun carve-out-solid-blocks ()
   (let ((tofix nil))
