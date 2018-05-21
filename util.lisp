@@ -1,5 +1,5 @@
-(defmacro % (a b)
-  `(mod (truncate ,a) (truncate ,b)))
+(defun % (a b)
+  (mod (truncate a) (truncate b)))
 
 (defun decay (&key (odds 0.1) (min 1) (max MOST-POSITIVE-FIXNUM))
   (do ((count min (1+ count)))
@@ -56,13 +56,12 @@
 (defmacro no-return (&body body)
   `(progn ,@body (values)))
 
-(defmacro random-list-item (alist)
-  `(progn
-     (or (listp ,alist)
-       (error "random-list-item needs a list to act on"))
-     (if (= 0 (list-length ,alist))
-       nil
-       (nth (random (list-length ,alist)) ,alist))))
+(defun random-list-item (alist &optional alen)
+  (or (listp alist)
+      (error "need a list to act on"))
+  (let ((len (if (integerp alen) alen (list-length alist))))
+    (if (= 0 len) nil
+      (nth (random len) alist))))
 
 (defun range (min max &optional (step 1))
   (if (zerop step) (error "step must not be zero"))
