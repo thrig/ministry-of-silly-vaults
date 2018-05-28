@@ -1,6 +1,12 @@
 (defun % (a b)
   (mod (truncate a) (truncate b)))
 
+(defun clear-array (a fill)
+  (let* ((len (reduce #'* (array-dimensions a)))
+         (b (make-array len :displaced-to a)))
+    (dotimes (n len)
+      (setf (aref b n) fill))))
+
 (defun decay (&key (odds 0.1) (min 1) (max MOST-POSITIVE-FIXNUM))
   (do ((count min (1+ count)))
     ((or (>= count max) (< (random 1.0) odds)) count)))

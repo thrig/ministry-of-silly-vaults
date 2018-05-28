@@ -61,6 +61,19 @@
   (add-to-grid p)
   (poisson-set-r (list p) (list p)))
 
+; is it more efficient to simply generate whitenoise that honors the grid?
+; problem with both these methods is as the grid fills up the attempts to
+; place a point fail more often
+(defun some-whitenoise ()
+  (let ((new nil) (points nil))
+    (repeat 750
+      (setf new (random-point))
+      (or (grid-taken? new)
+          (progn
+            (add-to-grid new)
+            (pushnew new points))))
+    points))
+
 ; TODO need better way to show what the grid looks like
 ;(add-to-grid '(0 . 0))
 ;(add-to-grid '(5 . 5))
@@ -72,8 +85,10 @@
 ;      (or (grid-taken? p)
 ;          (draw-at-point p #\x)))))
 
-(defparameter *points* (poisson-set (random-point)))
+;(defparameter *points* (poisson-set (random-point)))
+(defparameter *points* (some-whitenoise))
 (dolist (p *points*)
   (draw-at-point p #\x))
 (display-board)
+(format t "~&~D~%" (length *points*))
 ;(format t "~&~D~%" *grid-consumed*)

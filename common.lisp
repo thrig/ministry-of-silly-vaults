@@ -58,11 +58,8 @@
               :element-type 'character
               :initial-element (if (functionp obj) (funcall obj) obj)))
 
-(defun p-inbounds? (point &optional (rows *rows*) (cols *cols*))
-  (not (cond ((< (point-row point) 0))
-             ((< (point-col point) 0))
-             ((>= (point-row point) rows))
-             ((>= (point-col point) cols)))))
+(defun p-inbounds? (point)
+  (array-in-bounds-p *board* (point-row point) (point-col point)))
 
 (defun random-point (&optional (rows *rows*) (cols *cols*))
   (make-point (random rows)
