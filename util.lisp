@@ -56,6 +56,21 @@
 (defmacro no-return (&body body)
   `(progn ,@body (values)))
 
+(defun pop-nplus1 (n alist)
+  (if (= n 1)
+    (prog1
+      (cadr alist)
+      (rplacd alist (cddr alist)))
+    (pop-nplus1 (1- n) (cdr alist))))
+(defmacro pop-random (alist)
+  (let ((n (gensym)))
+    `(let ((,n (random (list-length ,alist))))
+       (if (= ,n 0)
+         (prog1
+           (car ,alist)
+           (setf ,alist (cdr ,alist)))
+         (pop-nplus1 ,n ,alist)))))
+
 (defun random-list-item (alist &optional alen)
   (or (listp alist)
       (error "need a list to act on"))

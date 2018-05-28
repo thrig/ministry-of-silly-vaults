@@ -68,6 +68,15 @@
   (make-point (random rows)
               (random cols)))
 
+(defun random-point-around (p mindist)
+  (let* ((r1 (random 1.0))
+         (r2 (random 1.0))
+         (radius (* mindist (1+ r1)))
+         (angle (* 2 pi r2)))
+    (make-point
+      (round (- (point-row p) (* radius (sin angle))))
+      (round (+ (point-col p) (* radius (cos angle)))))))
+
 (defun random-point-inside (&optional (rows *rows*) (cols *cols*))
   (make-point (1+ (random (- rows 2)))
               (1+ (random (- cols 2)))))
