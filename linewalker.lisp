@@ -49,8 +49,33 @@
         (set-point-col newp (+ (point-col newp) (sign-of deltac)))))
     (draw-at-point newp *floor*)))
 
+;;; this version suggested by redblobgames. see
+;;; https://www.redblobgames.com/grids/line-drawing.html for info on
+;;; moving things in somewhat less random ways. this moves only either
+;;; by row or by column
+(defun move-walker-1 (w)
+  (let ((deltar (- (point-row *target*) (point-row w)))
+        (deltac (- (point-col *target*) (point-col w)))
+        (newp (copy-point w)))
+    (if (< (random 1.0) (/ (abs deltar) (+ (abs deltar) (abs deltac))))
+      (set-point-row newp (+ (point-row newp) (sign-of deltar)))
+      (set-point-col newp (+ (point-col newp) (sign-of deltac))))
+    (draw-at-point newp *floor*)))
+
+;;; and an improved diagonal move version also suggested by redblobgames
+(defun move-walker-2 (w)
+  (let* ((deltar (- (point-row *target*) (point-row w)))
+         (deltac (- (point-col *target*) (point-col w)))
+         (newp (copy-point w))
+         (nsteps (max (abs deltar) (abs deltac))))
+    (when (< (random nsteps) (abs deltar))
+      (set-point-row newp (+ (point-row newp) (sign-of deltar))))
+    (when (< (random nsteps) (abs deltac))
+      (set-point-col newp (+ (point-col newp) (sign-of deltac))))
+    (draw-at-point newp *floor*)))
+
 (defun update-walker (w)
-  (if (same-point w *target*) nil (list (move-walker w))))
+  (if (same-point w *target*) nil (list (move-walker-2 w))))
 
 (dotimes (n *trials*)
   (setq *walkers* (n-random-points (1+ *walker-count*)
