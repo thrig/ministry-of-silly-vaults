@@ -3,7 +3,9 @@
 
 (defun clear-array (a fill)
   (let* ((len (reduce #'* (array-dimensions a)))
-         (b (make-array len :displaced-to a)))
+         (b (make-array len
+                        :displaced-to a
+                        :element-type (array-element-type a))))
     (dotimes (n len)
       (setf (aref b n) fill))))
 
@@ -102,18 +104,13 @@
          ,@body))))
 
 (defun select-n (n list)
-  (let ((len (list-length list)))
-    (if (> n len)
-      (error "cannot pick ~d items from ~d" n len))
-    (do ((item list (cdr item))
-         (remain len (1- remain))
-         (selection nil)
-         (want n))
-      ((= 0 want) (nreverse selection))
-      (if (< (random remain) (if (= want remain) remain (/ want remain)))
-        (progn
-          (push (car item) selection)
-          (decf want))))))
+  (do ((item list (cdr item))
+       (total (list-length list) (1- total))
+       (selection nil))
+    ((= 0 n) selection)
+    (when (< (random 1.0) (/ n total))
+      (push (car item) selection)
+      (decf n))))
 
 (defun sign-of (number)
   (if (minusp number) -1 1))

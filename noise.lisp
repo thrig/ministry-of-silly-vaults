@@ -20,7 +20,15 @@
 
 ;;; under "white noise" objects are randomly placed on the field
 (defun white-noise (&key (count 10) (obj #\x))
-  (repeat count (draw-at-point (random-point) obj)))
+  (do* ((total (reduce #'* (array-dimensions *board*)) (1- total))
+        (n (if (> count total) total count))
+        (b (make-array total
+                       :displaced-to *board*
+                       :element-type (array-element-type *board*))))
+    ((= n 0) t)
+    (when (< (random 1.0) (/ n total))
+      (setf (aref b (1- total)) obj)
+      (decf n))))
 
 (defun if-legal (new max)
   (and (>= new 0) (< new max) new))
@@ -46,7 +54,7 @@
 ;;; fill some percentage of the board with the given type of noise
 ;(white-noise :count (%-of-board 0.10))
 ;(display-board)
-;(clear-board)
+;(clear-array *board* #\x)
 ;(brown-noise :count (%-of-board 0.10))
 ;(display-board)
 
