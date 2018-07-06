@@ -1,6 +1,11 @@
 (defun % (a b)
   (mod (truncate a) (truncate b)))
 
+(defun binomial (n p &optional (x 0))
+  (dotimes (i n)
+    (and (< (random 1.0) p) (incf x)))
+  x)
+
 (defun clear-array (a fill)
   (let* ((len (reduce #'* (array-dimensions a)))
          (b (make-array len
@@ -63,6 +68,12 @@
 
 (defmacro no-return (&body body)
   `(progn ,@body (values)))
+
+(defun poisson (l)
+  (do ((L (exp (- l)))
+       (p 1.0 (* p (random 1.0)))
+       (k 0 (1+ k)))
+    ((<= p L) (1- k))))
 
 (defun pop-nplus1 (n alist)
   (if (= n 1)
