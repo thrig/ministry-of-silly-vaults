@@ -7,7 +7,7 @@
   x)
 
 (defun clear-array (a fill)
-  (let* ((len (reduce #'* (array-dimensions a)))
+  (let* ((len (array-total-size a))
          (b (make-array len
                         :displaced-to a
                         :element-type (array-element-type a))))

@@ -20,7 +20,7 @@
 
 ;;; under "white noise" objects are randomly placed on the field
 (defun white-noise (&key (count 10) (obj #\x))
-  (do* ((total (reduce #'* (array-dimensions *board*)) (1- total))
+  (do* ((total (array-total-size *board*) (1- total))
         (n (if (> count total) total count))
         (b (make-array total
                        :displaced-to *board*
