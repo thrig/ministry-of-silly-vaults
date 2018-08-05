@@ -1,0 +1,103 @@
+#!/usr/bin/env perl
+#
+# "Dijkstra Map" path-finding, illustrated
+
+use 5.14.0;
+use warnings;
+use List::Util qw(reduce shuffle);
+use Game::DijkstraMap 0.08;
+#use Time::HiRes qw(sleep);
+
+# PORTABILITY - xterm control sequences - http://invisible-island.net/xterm/
+sub at ($$) { "\e[" . ( 1 + $_[0] ) . ";" . ( 1 + $_[1] ) . "H" }
+sub clear_screen () { "\e[1;1H\e[2J" }
+sub t_hili ()       { "\e[41m" }
+sub t_norm ()       { "\e[m" }
+
+my $mapstr    = do { local $/; readline *DATA };
+my $Level_Map = Game::DijkstraMap->str2map($mapstr);
+my $default   = Game::DijkstraMap->new( map => $Level_Map );
+
+# treat Plants as walls; this could also be done with a custom costfn.
+# reveals the square move bias of the normalize_costs() method
+my $plevel = $mapstr;
+$plevel =~ tr/P/#/;
+my $nopath = Game::DijkstraMap->new( str2map => $plevel );
+
+# fungus (and Plants) are goals in this map, or not
+my $flevel = $mapstr;
+$flevel =~ tr/xfP/.xx/;
+my $fungus = Game::DijkstraMap->new( str2map => $flevel );
+
+sub show_path {
+    for my $point ( @{ $_[0] } ) {
+        say at( $point->[0], $point->[1] ), t_hili,
+          $Level_Map->[ $point->[0] ][ $point->[1] ], t_norm;
+        #sleep 0.1;
+    }
+}
+
+sub show_disjoint {
+    for my $point ( @{ $_[0]->unconnected } ) {
+        say at( $point->[0], $point->[1] ), t_hili,
+          $Level_Map->[ $point->[0] ][ $point->[1] ], t_norm;
+    }
+}
+
+sub bestpath {
+    my $path = $_[0]->path_best( 0, 0 );
+    return show_disjoint $_[0] if !@$path;
+    show_path($path);
+}
+
+# TODO nope need something different than ->next for this
+sub avoid_fungus {
+    my ( $dm, $fm ) = @_;
+    my ( $r, $c ) = ( 0, 0 );
+    my @path;
+    while (1) {
+        my $choices = $dm->next( $r, $c );
+        last if !@$choices;
+        my $pick = 0;
+        if ( @$choices > 1 ) {
+            $pick = int rand scalar @$choices;
+            my $fvalues = $fm->values( map $_->[0], @$choices );
+            $pick = map { $_->[0] } reduce { $a->[1] < $b->[1] ? $a : $b }
+            map { [ $_, ( $choices->[$_][1] + 2 * $fvalues->[$_] ) ] } 0 .. $#$choices;
+        }
+        ( $r, $c ) = @{ $choices->[$pick][0] };
+        push @path, [ $r, $c ];
+    }
+    die "no path found\n" if !@path;
+    show_path( \@path );
+}
+
+say clear_screen, t_norm, $mapstr;
+
+# TWEAK fiddle with these...
+#avoid_fungus $default, $fungus;
+bestpath $default;
+#bestpath $nopath;
+
+say at @$Level_Map, 0;
+__DATA__
+@..f..f.........f.f.#.##.f..P............##......................#######
+ff....ff.ff.P...f.fff###f..f.f......f.##...#......................#.##.#
+..fff..f.....f##.ff.#####...f.f.P....ff######........f...........##.##..
+.....f.......#.##..##Pf#.#.....fff........#..#f....f..#..........#f#...f
+.f...........##.####.....#.f...fff..........P#..f#P..#............##....
+.........f......###....f.f#.f.f.....##........#..f###..f...f.....###f..x
+f..........##...##.#........ff.......P#.......f..f.f..ff.f...f...##..f..
+........ff.#fff.####.f....ffff.f......##...............ff.f..f...###f...
+f....#..f.#.ff#..#ff...f.fffff.......##.#..P..f.f..ff.f..f.f......##...f
+.#.####.##.ff.#####.ff.fff..ff.......f.####.###...f..f.f.f.....#.###f...
+###..#.##P.f.#####....f..#..f......f....PP###..#..ff.fff...fff.####.....
+..f#....##..##....f.....###f.....ff.....f.#####.#......f..f.P..####...PP
+...###....f#.#f..P.f..######....f.f..fff.#....###...f..f...##f.#.#.P....
+f..f#f#.....####f.f####...#.....f.fff...#...f.####.........#ffff......P.
+f.f..#.#..f####.#ff.##.........f..f.f.f.f.P.#####.........#..ff.....###.
+f.ff.##....#####f.f..f#.......f..ff.f..f.f.f..##.............##...#..#..
+f.f..###.f..#f.#.f...#......f.fff.f...fffff.f##..............##..#######
+..fff.f##f.#...P.f.........####.f##.f.fff...f#..................#######.
+.......f.P#..f............###f.####..ff.ff#f.#...................##..#..
+f....fff............f....ff###........fff.####.f......................P.

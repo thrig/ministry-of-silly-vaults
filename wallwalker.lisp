@@ -45,9 +45,9 @@
 
 (defun generate-choices (row col)
   (let ((choices nil))
-    (loop for offset in '(-1 1) do
-          (push (make-point (+ row offset) col) choices)
-          (push (make-point row (+ col offset)) choices))
+    (dolist (offset '(-1 1))
+      (push (make-point (+ row offset) col) choices)
+      (push (make-point row (+ col offset)) choices))
     choices))
 
 (defun unoccupied? (point)

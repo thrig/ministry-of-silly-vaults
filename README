@@ -30,7 +30,7 @@ utility scripts that generate vaults presumably for use in a roguelike
 Usage & Utilities              ....##............
 
     make depend
-      will install any required perl module dependencies, assuming perl
+      will install any required Perl module dependencies, assuming perl
       and App::cpanminus are installed. and make. some Common Lisp
       implementation is likely necessary to make use of the *.lisp code
       (the LISP was written for clisp, or now under SBCL. Clozure CL may
@@ -46,7 +46,10 @@ Usage & Utilities              ....##............
 
         ./circulator 7
 
-    linewalker
+    crossing
+      example use of the Game::DijkstraMap Perl module
+
+    linewalker.lisp
       walkers converge on a target point, carving out lines
 
         sbcl --script linewalker.lisp
@@ -54,7 +57,8 @@ Usage & Utilities              ....##............
     noise
       illustration of "white" noise versus "brown" noise
 
-        sbcl --script noise.lisp
+    rooms-random.lisp
+      places rooms randomly adds corridors to connect
 
     spiralfoo
       spirals, or something akin. code will require tweaking
@@ -64,12 +68,14 @@ Usage & Utilities              ....##............
 
         make termlbrot && ./termlbrot
 
-    wallwalker
+    wallwalker.lisp
       random walk to fill in space, plus some doors and more
 
-        sbcl --script wallwalker.lisp
 
-See also https://github.com/tsadok/level-generator-perlscripts
+See also https://github.com/thrig/Game-DijkstraMap
+         https://github.com/thrig/Game-TextPatterns
+         https://github.com/tsadok/level-generator-perlscripts
+
 
 ,,~.,.~,,,,,,,,.,.~~.~..~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ,.,,.,,,,.,,##~,,,,..,,~,.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
