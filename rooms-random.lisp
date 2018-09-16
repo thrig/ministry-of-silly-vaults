@@ -11,7 +11,7 @@
 (defparameter *max-rooms* 5)
 
 (defparameter *room-max-row* 8)
-(defparameter *room-max-col* 8)
+(defparameter *room-max-col* 10)
 
 (defparameter *floor*       #\.)
 (defparameter *wall-floor*  #\,)
@@ -30,22 +30,30 @@
 
 (defparameter *rooms* nil)
 
+(defun random-room-row (r)
+  (+ r (decay :odds 0.09
+              :min 3
+              :max (min *room-max-row* (- *rows* r 1)))))
+
+(defun random-room-col (c)
+  (+ c (decay :odds 0.03
+              :min 3
+              :max (min *room-max-col* (- *cols* c 1)))))
+
+(defun prepare-room (room)
+  (do-rect-inside room (lambda (r c) (draw-at r c *floor*)))
+  (do-rect-ring   room (lambda (r c) (draw-at r c *room-wall*)))
+  (do-rect-corner room (lambda (r c) (draw-at r c *room-pillar*)))
+  (push room *rooms*))
+
 (defun place-room-randomly ()
   (let* ((p1 (random-point (- *rows* 3) (- *cols* 3)))
          (p2 (make-point
-               (+ (point-row p1)
-                  (decay :odds 0.09
-                         :min 3
-                         :max (min *room-max-row*
-                                   (- *rows* (point-row p1) 1))))
-               (+ (point-col p1)
-                  (decay :odds 0.03
-                         :min 3
-                         :max (min *room-max-col*
-                                   (- *cols* (point-col p1) 1))))))
+               (random-room-row (point-row p1))
+               (random-room-col (point-col p1))))
          (newrect (make-rectangle p1 p2)))
     (do ((room *rooms* (rest room)))
-      ((null room) (push newrect *rooms*))
+      ((null room) (prepare-room newrect))
       ;(draw-at-point p1 #\t)
       (if (rect-inside-overlap? (first room) newrect) (return nil)))))
 
@@ -53,12 +61,6 @@
   ((or (zerop attempts)
        (>= (list-length *rooms*) *max-rooms*)) nil)
   (place-room-randomly))
-
-(dolist (room *rooms*)
-  (do-rect-inside room (lambda (r c) (draw-at r c *floor*)))
-  (do-rect-ring   room (lambda (r c) (draw-at r c *room-wall*))))
-(dolist (room *rooms*)
-  (do-rect-corner room (lambda (r c) (draw-at r c *room-pillar*))))
 
 (defparameter *wall-dimap*
   (make-dimap *board*

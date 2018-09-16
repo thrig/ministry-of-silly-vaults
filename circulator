@@ -7,7 +7,7 @@
 # Usage:
 #   ./circulator 7
 
-use strict;
+use 5.24.0;
 use warnings;
 use List::UtilsBy qw(sort_by);
 use Math::Trig;
@@ -72,6 +72,6 @@ sub points_of_circle {
 
 sub signature {
     join ";",
-      map { join ",", @$_ }
-      sort_by { sprintf "%04d%04d", $_->[0], $_->[1] } @{ $_[0] };
+      map { join ",", $_->@* }
+      sort_by { sprintf "%04d%04d", $_->[0], $_->[1] } $_[0]->@*;
 }

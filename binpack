@@ -2,7 +2,7 @@
 #
 # Puts some random rectangles in a grid. Connects them with doors.
 
-use strict;
+use 5.24.0;
 use warnings;
 use Algorithm::BinPack::2D;
 
@@ -37,7 +37,7 @@ my $bin = ( $packer->pack_bins )[0];
 $grid_width  = $bin->{width};
 $grid_height = $bin->{height};
 
-for my $sq ( @{ $bin->{items} } ) {
+for my $sq ( $bin->{items}->@* ) {
     for my $y ( $sq->{y} + 1 .. $sq->{y} + $sq->{height} - 1 ) {
         for my $x ( $sq->{x} + 1 .. $sq->{x} + $sq->{width} - 1 ) {
             $grid[$y][$x] = FLOOR;

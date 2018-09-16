@@ -2,7 +2,7 @@
 #
 # Draws spirals. This one will need tweaking.
 
-use strict;
+use 5.24.0;
 use warnings;
 use Math::Trig;
 

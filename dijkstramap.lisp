@@ -118,6 +118,6 @@
 ;                  ((99 99 99) (99 99 99) (99 99 99))
 ;                  ((99 99 99) (99 99 99) (99 99 99))))))
 ;(dimap-calc level)
-;level
+;(format t "~a~%" level)
 ;(setf *dimap-cost-max* 99)
-;(dimap-major-unconnected level)
+;(format t "~a~%" (dimap-unconnected level))

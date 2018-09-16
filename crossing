@@ -2,7 +2,7 @@
 #
 # "Dijkstra Map" path-finding, illustrated
 
-use 5.14.0;
+use 5.24.0;
 use warnings;
 use List::Util qw(reduce shuffle);
 use Game::DijkstraMap 0.08;
@@ -24,13 +24,13 @@ my $plevel = $mapstr;
 $plevel =~ tr/P/#/;
 my $nopath = Game::DijkstraMap->new( str2map => $plevel );
 
-# fungus (and Plants) are goals in this map, or not
+# fungus (and Plants) are the anti-goals in this map
 my $flevel = $mapstr;
-$flevel =~ tr/xfP/.xx/;
+$flevel =~ tr/@./x/;
 my $fungus = Game::DijkstraMap->new( str2map => $flevel );
 
 sub show_path {
-    for my $point ( @{ $_[0] } ) {
+    for my $point ( $_[0]->@* ) {
         say at( $point->[0], $point->[1] ), t_hili,
           $Level_Map->[ $point->[0] ][ $point->[1] ], t_norm;
         #sleep 0.1;
@@ -38,7 +38,7 @@ sub show_path {
 }
 
 sub show_disjoint {
-    for my $point ( @{ $_[0]->unconnected } ) {
+    for my $point ( $_[0]->unconnected->@* ) {
         say at( $point->[0], $point->[1] ), t_hili,
           $Level_Map->[ $point->[0] ][ $point->[1] ], t_norm;
     }
@@ -46,40 +46,49 @@ sub show_disjoint {
 
 sub bestpath {
     my $path = $_[0]->path_best( 0, 0 );
-    return show_disjoint $_[0] if !@$path;
+    return show_disjoint $_[0] unless $path->@*;
     show_path($path);
 }
 
-# TODO nope need something different than ->next for this
+# TODO not really practical, gets stuck as local minimum...
 sub avoid_fungus {
     my ( $dm, $fm ) = @_;
     my ( $r, $c ) = ( 0, 0 );
     my @path;
-    while (1) {
-        my $choices = $dm->next( $r, $c );
-        last if !@$choices;
-        my $pick = 0;
-        if ( @$choices > 1 ) {
-            $pick = int rand scalar @$choices;
-            my $fvalues = $fm->values( map $_->[0], @$choices );
-            $pick = map { $_->[0] } reduce { $a->[1] < $b->[1] ? $a : $b }
-            map { [ $_, ( $choices->[$_][1] + 2 * $fvalues->[$_] ) ] } 0 .. $#$choices;
-        }
-        ( $r, $c ) = @{ $choices->[$pick][0] };
-        push @path, [ $r, $c ];
+    my $i = 100;
+    while ( my $choice =
+        $dm->next_with( $r, $c, { objs => [$fm], weights => [3] } ) ) {
+        push @path, $choice;
+        ( $r, $c ) = $choice->@*;
+        last if $i-- == 0;
     }
     die "no path found\n" if !@path;
     show_path( \@path );
 }
 
-say clear_screen, t_norm, $mapstr;
+sub a_map {
+    say clear_screen, t_norm, $mapstr;
 
-# TWEAK fiddle with these...
-#avoid_fungus $default, $fungus;
-bestpath $default;
-#bestpath $nopath;
+    # TWEAK fiddle with these...
+    #avoid_fungus $default, $fungus;
+    bestpath $default;
+    #bestpath $nopath;
 
-say at @$Level_Map, 0;
+    say at $Level_Map->@*, 0;
+}
+
+# these are best with a smaller test map whose TSV fit in the terminal
+#say $default->to_tsv($Level_Map);
+#say $default->to_tsv(
+#    $default->dimap_with(
+#        {   objs      => [$fungus],
+#            weights   => [3],
+#            my_weight => 1
+#        }
+#    )
+#);
+a_map
+
 __DATA__
 @..f..f.........f.f.#.##.f..P............##......................#######
 ff....ff.ff.P...f.fff###f..f.f......f.##...#......................#.##.#
