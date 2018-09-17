@@ -178,9 +178,9 @@
 
 ; NOTE returns the list of points high to low, NREVERSE or shuffle the
 ; points if necessary
-(defun n-random-points (n &key (rows *rows*) (cols *cols*))
+(defun n-random-points (n &key (rows (1- *rows*)) (cols (1- *cols*)))
   (do* ((points nil)
-        (total (* rows cols))
+        (total (* rows cols) (1- total))
         (left (min n total))
         (r 0) (c 0))
     ((= 0 left) points)

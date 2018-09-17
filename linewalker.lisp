@@ -3,7 +3,7 @@
 ;;;;; walkers overlap or that none start on axis with the target
 
 (defparameter *floor* #\.)
-(defparameter *wall* #\#)
+(defparameter *wall*  #\#)
 
 (defparameter *rows* 23)
 (defparameter *cols* 79)
@@ -13,7 +13,7 @@
 ;;; guaranteed by using the target from a run as a walker in subsequent
 ;;; runs. another method would be to stop the walkers after N moves and
 ;;; then change the target, etc
-(defparameter *trials* 5)
+(defparameter *trials* 7)
 (defparameter *walker-count* 11)
 
 ;;; 1.0 means there is a 100% chance that an on-axis move will happen;
@@ -78,8 +78,7 @@
   (if (same-point w *target*) nil (list (move-walker-2 w))))
 
 (dotimes (n *trials*)
-  (setq *walkers* (n-random-points (1+ *walker-count*)
-                                   :method #'random-point-inside))
+  (setq *walkers* (n-random-points (1+ *walker-count*)))
   (setq *target* (first *walkers*))
   (setq *walkers* (rest *walkers*))
   (while (not (null *walkers*))

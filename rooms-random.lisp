@@ -7,8 +7,8 @@
 (defparameter *rows* 24)
 (defparameter *cols* 80)
 
-(defparameter *attempts* 10)
-(defparameter *max-rooms* 5)
+(defparameter *attempts* 100)
+(defparameter *max-rooms* 10)
 
 (defparameter *room-max-row* 8)
 (defparameter *room-max-col* 10)
@@ -31,12 +31,12 @@
 (defparameter *rooms* nil)
 
 (defun random-room-row (r)
-  (+ r (decay :odds 0.09
+  (+ r (decay :odds 0.11
               :min 3
               :max (min *room-max-row* (- *rows* r 1)))))
 
 (defun random-room-col (c)
-  (+ c (decay :odds 0.03
+  (+ c (decay :odds 0.07
               :min 3
               :max (min *room-max-col* (- *cols* c 1)))))
 
