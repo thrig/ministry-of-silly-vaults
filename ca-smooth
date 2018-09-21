@@ -4,6 +4,9 @@
 
 use 5.24.0;
 use warnings;
+use Getopt::Long qw(GetOptions);
+
+GetOptions( 'ring' => \my $Flag_Ring ) or exit 1;
 
 my @field;
 while (readline) {
@@ -13,10 +16,26 @@ while (readline) {
     push @field, [ split // ];
 }
 
+if ($Flag_Ring) {
+    my $rows = $#field;
+    my $cols = $field[0]->$#*;
+    for my $r ( 0, $rows ) {
+        for my $c ( 0 .. $cols ) {
+            $field[$r][$c] = '#';
+        }
+    }
+    for my $c ( 0, $cols ) {
+        for my $r ( 1 .. $rows - 1 ) {
+            $field[$r][$c] = '#';
+
+        }
+    }
+}
+
 sub living {
     my ( $field, $r, $c ) = @_;
-    my $rows = $field->$#*;
-    my $cols = $field->[0]->$#*;
+    my $rows   = $field->$#*;
+    my $cols   = $field->[0]->$#*;
     my $living = 0;
     for my $i ( -1, 1 ) {
         my $x = $c + $i;
@@ -43,12 +62,12 @@ do {
         for my $c ( 0 .. $cols ) {
             my $l = living \@field, $r, $c;
             if ( $field[$r][$c] eq '#' ) {
-                if ( $l < 3 ) {
+                if ( $l < 4 ) {
                     $field[$r][$c] = '.';
                     $unstable = 1;
                 }
             } else {
-                if ( $l >= 6 ) {
+                if ( $l >= 5 ) {
                     $field[$r][$c] = '#';
                     $unstable = 1;
                 }
@@ -59,3 +78,4 @@ do {
 } while $unstable;
 
 for my $row (@field) { say join '', @$row }
+warn 'i=' . $iters . $/;

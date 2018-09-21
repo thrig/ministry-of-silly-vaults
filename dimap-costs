@@ -1,0 +1,9 @@
+#!/usr/bin/env perl
+# displays the costs for a given level map (where 'x' is a goal, '#' is
+# a wall, and anything else considered an open square)
+use strict;
+use warnings;
+use Game::DijkstraMap;
+print Game::DijkstraMap->new(
+    str2map => do { local $/; readline }
+)->to_tsv;

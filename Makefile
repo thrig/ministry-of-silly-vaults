@@ -10,6 +10,9 @@ depend:
 	@go get github.com/fogleman/gg
 
 # KLUGE requires multiple runs to fill in the references
+dijkstramap.pdf: dijkstramap.tex
+	xelatex -halt-on-error -interaction=batchmode dijkstramap.tex
+	bibtex dijkstramap.aux
 noise.pdf: noise.tex
 	xelatex -halt-on-error -interaction=batchmode noise.tex
 	bibtex noise.aux
@@ -17,6 +20,6 @@ noise.pdf: noise.tex
 termlbrot: termlbrot.c
 
 clean:
-	@-rm -f termlbrot noise.bbl noise.blg noise.log noise.out noise.tex.bak >/dev/null 2>&1
+	git clean --force -x
 
 .PHONY: clean depend
