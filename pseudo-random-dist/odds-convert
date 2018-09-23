@@ -1,0 +1,12 @@
+#!/usr/bin/env perl
+use 5.24.0;
+use warnings;
+use lib qw(.);
+use Odds;
+chomp( @ARGV = readline *STDIN ) unless @ARGV;
+for my $n (@ARGV) {
+    die "value out of range: $n\n" if $n > 100;
+    $n *= 100 if $n < 1;
+    my $o = Odds->new( odds => $n );
+    say join "\t", map $o->$_, qw(odds float uint32);
+}

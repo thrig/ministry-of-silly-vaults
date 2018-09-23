@@ -1,0 +1,28 @@
+"Pseudo Random Distribution" are used in various games to make the RNG
+less likely to go on long runs of hits or misses. a RNG with more fibre
+in its diet, in other words
+
+    % make prd-trial
+    gcc -std=c99 -O3 prd-trial.c -o prd-trial
+    % ./prd-trial | r-fu summary
+    elements 1000 mean 0.246 range 0.005 min 0.243 max 0.248 sd 0.001
+
+         0%     25%     50%     75%    100%
+    0.24336 0.24528 0.24580 0.24630 0.24797
+
+however a comparison of this ~25% odds with a regular 25% test shows
+that the PRD is less likely to go on runs of misses
+
+    % make prd
+    gcc   prd.o   -o prd
+    % ./prd | r-fu colsumm - prd regular
+                    prd     regular
+    Count   1000.000000 1000.000000
+    Range     15.000000   30.000000
+    Mean      15.941000   28.615000
+    Sdev       2.834352    4.536447
+    Min.      13.000000   19.000000
+    1st Qu.   14.000000   26.000000
+    Median    14.000000   28.000000
+    3rd Qu.   18.000000   31.000000
+    Max.      28.000000   49.000000

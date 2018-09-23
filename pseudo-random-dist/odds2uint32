@@ -1,0 +1,7 @@
+#!/usr/bin/env perl
+use 5.24.0;
+use warnings;
+use lib qw(.);
+use Odds;
+chomp( @ARGV = readline *STDIN ) unless @ARGV;
+say join ", ", map { Odds->new( odds => $_ )->uint32 } @ARGV;

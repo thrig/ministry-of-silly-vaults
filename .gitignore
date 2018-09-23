@@ -1,9 +1,10 @@
-*.core
-crawlpaper
 *.aux
 *.bbl
 *.blg
+*.core
 *.log
+*.o
 *.out
 *.tex.bak
+crawlpaper
 termlbrot
