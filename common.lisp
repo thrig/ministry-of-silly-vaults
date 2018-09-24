@@ -52,6 +52,16 @@
         (if (functionp obj) (funcall obj) obj))
   point)
 
+(defun draw-corridor (p1 p2 obj)
+  (draw-at-point p1 obj)
+  (while (not (same-point p1 p2))
+    (let ((deltar (- (point-row p2) (point-row p1)))
+          (deltac (- (point-col p2) (point-col p1))))
+      (if (< (random 1.0) (/ (abs deltar) (+ (abs deltar) (abs deltac))))
+        (set-point-row p1 (+ (point-row p1) (sign-of deltar)))
+        (set-point-col p1 (+ (point-col p1) (sign-of deltac))))
+      (draw-at-point p1 obj))))
+
 (defun do-rect (rect fn)
   (loop for r from (caar rect) to (cadr rect) do
         (loop for c from (cdar rect) to (cddr rect) do

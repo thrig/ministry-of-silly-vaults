@@ -4,11 +4,11 @@
 ;;;;; be possible should two adjacent rooms box a third in, as room to
 ;;;;; room doors are not permitted in this implementation
 
-(defparameter *rows* 24)
-(defparameter *cols* 80)
+(defparameter *rows* 21)
+(defparameter *cols* 63)
 
-(defparameter *attempts* 100)
-(defparameter *max-rooms* 10)
+(defparameter *attempts* 30)
+(defparameter *max-rooms* 7)
 
 (defparameter *room-max-row* 8)
 (defparameter *room-max-col* 10)
@@ -16,6 +16,7 @@
 (defparameter *floor*       #\.)
 (defparameter *wall-floor*  #\,)
 (defparameter *wall*        #\#)
+(defparameter *wall-vein*   #\%)
 (defparameter *door*        #\+)
 (defparameter *room-wall*   #\D)
 (defparameter *room-pillar* #\X)
@@ -27,6 +28,21 @@
 (progn (setq *random-state* (make-random-state t)) t)
 
 (defparameter *board* (make-board *rows* *cols* *wall*))
+
+;;; artificial partition of the board enforces different unconnected
+;;; spaces (at risk of nothing being drawn between them if there is not
+;;; a room straddling the line)
+(dotimes (x 2)
+  (draw-corridor
+    (make-point 0 (random-between *room-max-col* (- *cols* *room-max-col*)))
+    (make-point (1- *rows*)
+                (random-between *room-max-col* (- *cols* *room-max-col*)))
+    *wall-vein*))
+;(draw-corridor
+;  (make-point (random-between *room-max-row* (- *rows* *room-max-row*)) 0)
+;  (make-point (random-between *room-max-row* (- *rows* *room-max-row*))
+;              (1- *cols*))
+;  *wall-vein*)
 
 (defparameter *rooms* nil)
 

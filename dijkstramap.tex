@@ -15,7 +15,7 @@
 
 \title{Dijkstra Maps in Roguelikes}
 \author{Jeremy Mates}
-\date{September 20, 2018}
+\date{September 23, 2018}
 
 \usepackage{hyperref}
 \hypersetup{pdfauthor={Jeremy Mates},pdftitle={Dijkstra Maps in Roguelikes}}
@@ -261,6 +261,61 @@ under (non-euclidean) 8-way is:
 \vskip 1em%
 
 And the player can path to the goal.
+
+\section*{Not Just for Animates}
+
+Dijkstra Map can be used for other purposes. Given a map with two rooms
+in it, how to connect them?
+
+\begin{verbatim}
+####################
+###########XXXXXX###
+###########X....X###
+###########X....X###
+#XXXXXX####XXXXXX###
+#X....X#############
+#X....X#############
+#X....X#############
+#XXXXXX#############
+####################
+\end{verbatim}
+
+Place a goal anywhere in the wall space, and then considering only walls
+\texttt{\symbol{35}} as passable construct a Dijkstra Map with the goal
+as the destination, here shown partially complete.
+
+\begin{verbatim}
+           XXXXXX   
+           X....X8  
+     DCBA98X....X7  
+ XXXXXXA987XXXXXX6  
+ X....X98765432345  
+ X....X87654321234  
+ X....X76543210123  
+ XXXXXX 765432123   
+\end{verbatim}
+
+Then pick a random door location in each room, and pathfind from each
+door to the goal, drawing a corridor along the way.
+
+\begin{verbatim}
+####################
+###########XXXXXX###
+###########X....+.##
+#####...###X....X.##
+#XXXX+X.###XXXXXX.##
+#X....X...#######.##
+#X....X##.........##
+#X....X#######,.####
+#XXXXXX#############
+####################
+\end{verbatim}
+
+This will run into complications if rooms are adjacent or worse two
+rooms block a third from reaching a goal (there should likely be one
+goal per unconnected wall space in a map) though there are various
+solutions to these challenges, such as pathfinding through rooms or
+using additional code to find and link up adjacent rooms.
 
 \section*{Super Dimensional Dijkstra Maps}
 
