@@ -110,6 +110,18 @@
           (draw-at 0 c obj)
           (draw-at (1- *rows*) c obj))))
 
+;;; not very interesting nor efficient
+(defun boundary-fill (r c fill limit)
+  (when (array-in-bounds-p *board* r c)
+    (let ((value (get-obj-at r c)))
+      (when (and (not (eq value fill))
+                 (not (eq value limit)))
+        (draw-at r c fill)
+        (boundary-fill (1+ r) c fill limit)
+        (boundary-fill (1- r) c fill limit)
+        (boundary-fill r (1+ c) fill limit)
+        (boundary-fill r (1- c) fill limit)))))
+
 (defun clear-board (&optional (obj *floor*))
   (no-return
     (dotimes (r *rows*)

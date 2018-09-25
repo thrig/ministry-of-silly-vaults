@@ -1,0 +1,42 @@
+#!/usr/bin/env perl
+#
+# what maps of the given size when run through four_up twice (see the
+# Game::TextPatterns docs) are completely connected by 4-way motion (the
+# default path finding method for Game::DijkstraMap)
+
+use 5.24.0;
+use warnings;
+use Function::Parameters;
+use Game::DijkstraMap;
+use Game::TextPatterns;
+
+# this should be a small positive value greater than 1
+my $size = int( shift // 2 );
+
+fun square( $dimensions, $fn ) {
+    my $edge = $dimensions - 1;
+    my $sq   = $dimensions**2;
+    my $pow  = $sq - 1;
+    for my $n ( 0 .. 2**$pow ) {
+        my $s = '';
+        for my $o ( 0 .. $pow ) {
+            $s .= ( $n >> $o & 1 ) == 0 ? '.' : '#';
+            $s .= $/ if $o % $dimensions == $edge;
+        }
+        $fn->($s);
+    }
+}
+
+square(
+    $size,
+    sub {
+        my $pat = Game::TextPatterns->new( pattern => $_[0] );
+        $pat = $pat->four_up->four_up;
+        my $dma = Game::DijkstraMap->new;
+        $dma->map( $pat->as_array );
+        my $ucn = $dma->unconnected;
+        $dma->update( [ $ucn->[0]->@*, 0 ] );
+        $dma->recalc;
+        say $pat->string unless $dma->unconnected->@*;
+    }
+);

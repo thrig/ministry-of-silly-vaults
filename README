@@ -59,6 +59,9 @@ another option
     noise
       illustration of "white" noise versus "brown" noise
 
+    pathable
+      mirrored maps path findable by 4-way motion
+
     rooms-random.lisp
       places rooms randomly adds corridors to connect
 
