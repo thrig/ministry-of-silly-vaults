@@ -3,8 +3,8 @@
 ;;;;;
 ;;;;;   sbcl --script room-size-stats.lisp | r-fu colsumm - rows cols
 
-(defparameter *rows* 24)
-(defparameter *cols* 80)
+(defparameter +rows+ 24)
+(defparameter +cols+ 80)
 (defparameter *room-max-row* 8)
 (defparameter *room-max-col* 10)
 (load "util.lisp")
@@ -15,15 +15,15 @@
 (defun random-room-row (r)
   (+ r (decay :odds 0.11
               :min 3
-              :max (min *room-max-row* (- *rows* r 1)))))
+              :max (min *room-max-row* (- +rows+ r 1)))))
 
 (defun random-room-col (c)
   (+ c (decay :odds 0.07
               :min 3
-              :max (min *room-max-col* (- *cols* c 1)))))
+              :max (min *room-max-col* (- +cols+ c 1)))))
 
 (defun print-room-dimensions ()
-  (let* ((p1 (random-point (- *rows* 3) (- *cols* 3)))
+  (let* ((p1 (random-point (- +rows+ 3) (- +cols+ 3)))
          (p2 (make-point
                (random-room-row (point-row p1))
                (random-room-col (point-col p1)))))

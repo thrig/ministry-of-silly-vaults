@@ -3,8 +3,8 @@
 ;;; areas are connected. probably less efficient than the "Cellular
 ;;; Automata Method for Generating Random Cave-Like Levels" algorithm
 
-(defparameter *rows* 12)
-(defparameter *cols* 72)
+(defparameter +rows+ 12)
+(defparameter +cols+ 72)
 
 (defparameter *door* #\+)
 (defparameter *edge* #\#)
@@ -15,14 +15,14 @@
 (defparameter *door-percent* 0.33)
 (defparameter *fill-percent* 0.56)
 
-(defparameter *iterations* (round (* (* *rows* *cols*) *fill-percent*)))
+(defparameter *iterations* (round (* (* +rows+ +cols+) *fill-percent*)))
 
 (load "util.lisp")
 (load "common.lisp")
 
 (progn (setq *random-state* (make-random-state t)) t)
 
-(defparameter *board* (make-board *rows* *cols* *fill*))
+(defparameter *board* (make-board +rows+ +cols+ *fill*))
 
 ; NOTE assumes that one is not working at the edges of the board
 (defun peer-count (row col obj)
@@ -34,8 +34,8 @@
 
 (defun carve-out-solid-blocks ()
   (let ((tofix nil))
-    (loop for r from 1 to (- *rows* 2) do
-          (loop for c from 1 to (- *cols* 2) do
+    (loop for r from 1 to (- +rows+ 2) do
+          (loop for c from 1 to (- +cols+ 2) do
                 (and (eq (get-obj-at r c) *edge*)
                      (>= (peer-count r c *edge*) *carve-if-surrounded-by*)
                      (push (make-point r c) tofix))))
@@ -64,8 +64,8 @@
     (draw-at row col *door*)))
 
 (defun add-some-doors ()
-  (loop for r from 1 to (- *rows* 2) do
-        (loop for c from 1 to (- *cols* 2) do
+  (loop for r from 1 to (- +rows+ 2) do
+        (loop for c from 1 to (- +cols+ 2) do
               (if (eq (get-obj-at r c) *edge*)
                 (cond
                   ((and
@@ -83,7 +83,7 @@
 
 ;;; this walks the walls as edges around the board, with a jump to some
 ;;; new start position if necessary
-(let ((newpoint nil) (row (random *rows*)) (col (random *cols*)))
+(let ((newpoint nil) (row (random +rows+)) (col (random +cols+)))
   (repeat *iterations*
           (draw-at row col *edge*)
           (setq newpoint (random-list-item
@@ -91,8 +91,8 @@
                              (generate-choices row col))))
           (if (null newpoint)
             (progn
-              (setq row (random *rows*))
-              (setq col (random *cols*)))
+              (setq row (random +rows+))
+              (setq col (random +cols+)))
             (progn
               (setq row (point-row newpoint))
               (setq col (point-col newpoint))))))

@@ -3,8 +3,8 @@
 ;;;;; rectangles are drawn and their corners filled in randomly to make
 ;;;;; them less rectanglish
 
-(defparameter *rows* 23)
-(defparameter *cols* 79)
+(defparameter +rows+ 23)
+(defparameter +cols+ 79)
 
 (defparameter *floor* #\.)
 (defparameter *wall*  #\#)
@@ -15,7 +15,7 @@
 
 (progn (setq *random-state* (make-random-state t)) t)
 
-(defparameter *board* (make-board *rows* *cols* *wall*))
+(defparameter *board* (make-board +rows+ +cols+ *wall*))
 
 (defparameter *coffsets*
               (make-array 4
@@ -57,8 +57,8 @@
 ;(draw-cave 1 1 5 10)
 ;(draw-cave 10 20 8 16)
 (repeat 50
-        (draw-cave (random-between 1 (- *rows* 5))
-                   (random-between 1 (- *cols* 5))
+        (draw-cave (random-between 1 (- +rows+ 5))
+                   (random-between 1 (- +cols+ 5))
                    (random-between 4 10)
                    (random-between 4 16)))
 (display-board)

@@ -10,15 +10,15 @@
 ;;; bouncing things off an already full grid)
 (defparameter *nearby-count* 10)
 
-(defparameter *rows* 23)
-(defparameter *cols* 79)
+(defparameter +rows+ 23)
+(defparameter +cols+ 79)
 
 (load "util.lisp")
 (load "common.lisp")
 
 (progn (setq *random-state* (make-random-state t)) t)
 
-(defparameter *board* (make-board *rows* *cols*))
+(defparameter *board* (make-board +rows+ +cols+))
 
 (defun board2grid (x)
   (cond ((atom x) (round (/ x *grid-resolution*)))
@@ -27,7 +27,7 @@
 ;;; TODO need a better name for this lower resolution version of
 ;;; the board
 (defparameter *grid*
-  (make-array (list (1+ (board2grid *rows*)) (1+ (board2grid *cols*)))
+  (make-array (list (1+ (board2grid +rows+)) (1+ (board2grid +cols+)))
               :initial-element nil))
 ;(inspect *grid*)
 ;(defparameter *grid-consumed* 0)
@@ -79,8 +79,8 @@
 ;(add-to-grid '(5 . 5))
 ;(add-to-grid '(5 . 78))
 ;(add-to-grid '(20 . 78))
-;(dotimes (r *rows*)
-;  (dotimes (c *cols*)
+;(dotimes (r +rows+)
+;  (dotimes (c +cols+)
 ;    (let ((p (make-point r c)))
 ;      (or (grid-taken? p)
 ;          (draw-at-point p #\x)))))

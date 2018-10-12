@@ -1,7 +1,7 @@
 ;;;;; mostly that some maths is correct
 
-(defparameter *rows* 23)
-(defparameter *cols* 79)
+(defparameter +rows+ 23)
+(defparameter +cols+ 79)
 
 (defparameter *min-distance* 5)
 
@@ -10,7 +10,7 @@
 
 (progn (setq *random-state* (make-random-state t)) t)
 
-(defparameter *board* (make-board *rows* *cols*))
+(defparameter *board* (make-board +rows+ +cols+))
 
 ;;; the negative sin is so the letters go around a unit circle the
 ;;; visibly "correct" way

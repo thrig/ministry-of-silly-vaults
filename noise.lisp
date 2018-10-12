@@ -1,8 +1,8 @@
 ;;;;; "white" versus "brown" noise for the random placement of objects
 ;;;;; onto a grid
 
-(defparameter *rows* 20)
-(defparameter *cols* 72)
+(defparameter +rows+ 20)
+(defparameter +cols+ 72)
 
 (defparameter *floor*  #\.)
 (defparameter *plant*  #\P)
@@ -14,9 +14,9 @@
 
 (progn (setq *random-state* (make-random-state t)) t)
 
-(defparameter *board* (make-board *rows* *cols* *floor*))
+(defparameter *board* (make-board +rows+ +cols+ *floor*))
 
-(defun %-of-board (p) (truncate (* *rows* *cols* p)))
+(defun %-of-board (p) (truncate (* +rows+ +cols+ p)))
 
 ;;; under "white noise" objects are randomly placed on the field
 (defun white-noise (&key (count 10) (obj #\x))
@@ -48,8 +48,8 @@
   (let ((r (point-row point)) (c (point-col point)))
     (repeat count
             (draw-at r c obj)
-            (setf r (nearby r *rows* rand-rows))
-            (setf c (nearby c *cols* rand-cols)))))
+            (setf r (nearby r +rows+ rand-rows))
+            (setf c (nearby c +cols+ rand-cols)))))
 
 ;;; fill some percentage of the board with the given type of noise
 ;(white-noise :count (%-of-board 0.10))

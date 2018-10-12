@@ -5,8 +5,8 @@
 (defparameter *floor* #\.)
 (defparameter *wall*  #\#)
 
-(defparameter *rows* 23)
-(defparameter *cols* 79)
+(defparameter +rows+ 23)
+(defparameter +cols+ 79)
 
 ;;; how many times to converge on a random target, and how many walkers
 ;;; per run converge on the target. connectedness if necessary could be
@@ -29,7 +29,7 @@
 
 (progn (setq *random-state* (make-random-state t)) t)
 
-(defparameter *board* (make-board *rows* *cols* *wall*))
+(defparameter *board* (make-board +rows+ +cols+ *wall*))
 
 ;;; the odds of moving on a particular axis depend on the slope of the
 ;;; line between the walker and its target; on-axis or 45˚ should be a

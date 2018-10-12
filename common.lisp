@@ -6,8 +6,8 @@
 (defvar *door*  #\+)
 (defvar *wall*  #\#)
 
-(defvar *rows* 10)
-(defvar *cols* 20)
+(defvar +rows+ 10)
+(defvar +cols+ 20)
 
 ;;; these are '(0 . 0) points (row . col)
 (defun copy-point (point) (cons (car point) (cdr point)))
@@ -119,12 +119,12 @@
 
 (defun add-border (&optional (obj *wall*))
   (no-return
-    (loop for r from 0 to (1- *rows*) do
+    (loop for r from 0 to (1- +rows+) do
           (draw-at r 0 obj)
-          (draw-at r (1- *cols*) obj))
-    (loop for c from 1 to (- *cols* 2) do
+          (draw-at r (1- +cols+) obj))
+    (loop for c from 1 to (- +cols+ 2) do
           (draw-at 0 c obj)
-          (draw-at (1- *rows*) c obj))))
+          (draw-at (1- +rows+) c obj))))
 
 ;;; not very interesting nor efficient
 (defun boundary-fill (r c fill limit)
@@ -140,14 +140,14 @@
 
 (defun clear-board (&optional (obj *floor*))
   (no-return
-    (dotimes (r *rows*)
-      (dotimes (c *cols*)
+    (dotimes (r +rows+)
+      (dotimes (c +cols+)
         (draw-at r c obj)))))
 
 (defun display-board ()
   (no-return
-    (dotimes (r *rows*)
-      (dotimes (c *cols*)
+    (dotimes (r +rows+)
+      (dotimes (c +cols+)
         (format t "~c" (aref *board* r c)))
       (fresh-line))))
 
@@ -201,7 +201,7 @@
     (let ((len (- max min)))
       (+ min (random len)))))
 
-(defun random-point (&optional (rows *rows*) (cols *cols*))
+(defun random-point (&optional (rows +rows+) (cols +cols+))
   (make-point (random rows)
               (random cols)))
 
@@ -214,13 +214,13 @@
       (round (- (point-row p) (* radius (sin angle))))
       (round (+ (point-col p) (* radius (cos angle)))))))
 
-(defun random-point-inside (&optional (rows *rows*) (cols *cols*))
+(defun random-point-inside (&optional (rows +rows+) (cols +cols+))
   (make-point (1+ (random (- rows 2)))
               (1+ (random (- cols 2)))))
 
 ; NOTE returns the list of points high to low, NREVERSE or shuffle the
 ; points if necessary
-(defun n-random-points (n &key (rows (1- *rows*)) (cols (1- *cols*)))
+(defun n-random-points (n &key (rows (1- +rows+)) (cols (1- +cols+)))
   (do* ((points nil)
         (total (* rows cols) (1- total))
         (left (min n total))
@@ -235,7 +235,7 @@
 
 (defun row-walk (row col fn)
   (do ((results nil) (r row (1+ r)))
-    ((>= r *rows*) results)
+    ((>= r +rows+) results)
     (let ((ret (funcall fn r col)))
       (if (null ret)
         (return-from row-walk results)
@@ -243,7 +243,7 @@
 
 (defun col-walk (row col fn)
   (do ((results nil) (c col (1+ c)))
-    ((>= c *cols*) results)
+    ((>= c +cols+) results)
     (let ((ret (funcall fn row c)))
       (if (null ret)
         (return-from col-walk results)
