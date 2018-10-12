@@ -62,6 +62,22 @@
         (set-point-col p1 (+ (point-col p1) (sign-of deltac))))
       (draw-at-point p1 obj))))
 
+(defun draw-horiz (row col count obj)
+  (do ((iters (abs count) (1- iters))
+       (nudge (if (plusp count) 1 -1)))
+    ((or (zerop iters)
+         (not (array-in-bounds-p *board* row col))) nil)
+    (draw-at row col obj)
+    (setf col (+ col nudge))))
+
+(defun draw-vert (row col count obj)
+  (do ((iters (abs count) (1- iters))
+       (nudge (if (plusp count) 1 -1)))
+    ((or (zerop iters)
+         (not (array-in-bounds-p *board* row col))) nil)
+    (draw-at row col obj)
+    (setf row (+ row nudge))))
+
 (defun do-rect (rect fn)
   (loop for r from (caar rect) to (cadr rect) do
         (loop for c from (cdar rect) to (cddr rect) do
@@ -142,6 +158,10 @@
 
 (defun p-inbounds? (point)
   (array-in-bounds-p *board* (point-row point) (point-col point)))
+
+(defun rect-inbounds? (rect)
+  (and (p-inbounds? (rect-p1 rect))
+       (p-inbounds? (rect-p2 rect))))
 
 (defun points-adjacent-to (point)
   (let ((points nil) (tmp nil))

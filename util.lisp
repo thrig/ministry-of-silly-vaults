@@ -14,6 +14,8 @@
     (dotimes (n len)
       (setf (aref b n) fill))))
 
+(defmacro coinflip () `(zerop (random 2)))
+
 (defun decay (&key (odds 0.1) (min 1) (max MOST-POSITIVE-FIXNUM))
   (do ((count min (1+ count)))
     ((or (>= count max) (< (random 1.0) odds)) count)))
