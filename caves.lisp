@@ -10,30 +10,36 @@
 (defparameter *wall*  #\#)
 (defparameter *fill*  #\X)
 
-(load "util.lisp")
-(load "common.lisp")
+(load "util")
+(load "common")
 
 (progn (setq *random-state* (make-random-state t)) t)
 
 (defparameter *board* (make-board +rows+ +cols+ *wall*))
 
+;;; which direction (row . col) must be filled in at each corner
 (defparameter *coffsets*
               (make-array 4
                           :initial-contents
                           '((1 . 1) (1 . -1) (-1 . -1) (-1 . 1))))
 
+;;; recursive corner in-fill: picks a row or column as the direction to
+;;; use, fills in 1 to N squares, then for the column or row adjacent to
+;;; the point filled in repeats the process with one less than N for
+;;; both directions (another option would be to use (1- N) and (1- rlen)
+;;; or (1- clen) as appropriate for slightly different results)
 (defun fill-corner (row col roff coff rlen clen obj)
   (if (coinflip)
-    (let ((len (random-between 1 clen)))
-      (draw-horiz row col (* len coff) obj)
-      (when (> len 1)
-        (setf len (1- len))
-        (fill-corner (+ row roff) col roff coff len len obj)))
-    (let ((len (random-between 1 rlen)))
-      (draw-vert row col (* len roff) obj)
-      (when (> len 1)
-        (setf len (1- len))
-        (fill-corner row (+ col coff) roff coff len len obj)))))
+    (let ((N (random-between 1 clen)))
+      (draw-horiz row col (* N coff) obj)
+      (when (> N 1)
+        (setf N (1- N))
+        (fill-corner (+ row roff) col roff coff N N obj)))
+    (let ((N (random-between 1 rlen)))
+      (draw-vert row col (* N roff) obj)
+      (when (> N 1)
+        (setf len (1- N))
+        (fill-corner row (+ col coff) roff coff N N obj)))))
 
 (defun draw-cave (row col rlen clen)
   (let* ((corners

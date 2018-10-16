@@ -7,9 +7,9 @@
 (defparameter +cols+ 80)
 (defparameter *room-max-row* 8)
 (defparameter *room-max-col* 10)
-(load "util.lisp")
-(load "common.lisp")
-(load "dijkstramap.lisp")
+(load "util")
+(load "common")
+(load "dijkstramap")
 (progn (setq *random-state* (make-random-state t)) t)
 
 (defun random-room-row (r)

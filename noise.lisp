@@ -9,8 +9,8 @@
 (defparameter *fungus* #\f)
 (defparameter *rock*   #\#)
 
-(load "util.lisp")
-(load "common.lisp")
+(load "util")
+(load "common")
 
 (progn (setq *random-state* (make-random-state t)) t)
 

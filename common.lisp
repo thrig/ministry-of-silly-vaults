@@ -218,6 +218,28 @@
   (make-point (1+ (random (- rows 2)))
               (1+ (random (- cols 2)))))
 
+; TODO needs testing and may be biased, is there a better way to pick
+; legal rectanges of particular dimensions within a given rectangle?
+(defun random-rect (min-rows min-cols max-rows max-cols
+                    &key (border 0) (rows +rows+) (cols +cols+))
+  (let ((2x-border (* 2 border)))
+    (when (or (> (+ 2x-border min-rows) rows)
+              (> (+ 2x-border min-cols) cols))
+      (error "board too small for given inputs"))
+    (let* ((p1 (make-point
+                 (if (eq rows min-rows) 0
+                   (+ border (random (- rows -1 min-rows 2x-border))))
+                 (if (eq cols min-cols) 0
+                   (+ border (random (- cols -1 min-cols 2x-border))))))
+           (p2 (make-point
+                 (random-between (+ (point-row p1) min-rows -1)
+                                 (min (+ (point-row p1) max-rows)
+                                      (- rows border)))
+                 (random-between (+ (point-col p1) min-cols -1)
+                                 (min (+ (point-col p1) max-cols)
+                                      (- cols border))))))
+      (make-rectangle p1 p2))))
+
 ; NOTE returns the list of points high to low, NREVERSE or shuffle the
 ; points if necessary
 (defun n-random-points (n &key (rows (1- +rows+)) (cols (1- +cols+)))

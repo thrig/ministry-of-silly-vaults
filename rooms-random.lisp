@@ -21,9 +21,9 @@
 (defparameter *room-wall*   #\D)
 (defparameter *room-pillar* #\X)
 
-(load "util.lisp")
-(load "common.lisp")
-(load "dijkstramap.lisp")
+(load "util")
+(load "common")
+(load "dijkstramap")
 
 (progn (setq *random-state* (make-random-state t)) t)
 

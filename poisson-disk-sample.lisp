@@ -13,8 +13,8 @@
 (defparameter +rows+ 23)
 (defparameter +cols+ 79)
 
-(load "util.lisp")
-(load "common.lisp")
+(load "util")
+(load "common")
 
 (progn (setq *random-state* (make-random-state t)) t)
 
