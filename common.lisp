@@ -1,5 +1,7 @@
 ;;;;; common routines used by various other scripts
 
+(load "util")
+
 (defvar *board* nil)
 
 (defvar *floor* #\.)
@@ -42,6 +44,13 @@
     (<= (car point) (cadr rect))
     (>= (cdr point) (cdar rect))
     (<= (cdr point) (cddr rect))))
+
+(defun add-points (p1 &rest points)
+  (let ((np (copy-point p1)))
+    (dolist (p2 points)
+      (set-point-row np (+ (point-row np) (point-row p2)))
+      (set-point-col np (+ (point-col np) (point-col p2))))
+    np))
 
 (defun draw-at (row col obj)
   (setf (aref *board* row col)
@@ -217,6 +226,16 @@
 (defun random-point-inside (&optional (rows +rows+) (cols +cols+))
   (make-point (1+ (random (- rows 2)))
               (1+ (random (- cols 2)))))
+
+(defun random-turn (point)
+  (let ((new-point (copy-point point)))
+    (if (eq (point-row new-point) 0)
+      (set-point-row new-point (if (coinflip) 1 -1))
+      (set-point-row new-point 0))
+    (if (eq (point-col new-point) 0)
+      (set-point-col new-point (if (coinflip) 1 -1))
+      (set-point-col new-point 0))
+    new-point))
 
 ; TODO needs testing and may be biased, is there a better way to pick
 ; legal rectanges of particular dimensions within a given rectangle?
