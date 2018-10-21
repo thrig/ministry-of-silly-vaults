@@ -1,3 +1,4 @@
+; more or less like how Perl does it
 (defun % (a b)
   (mod (truncate a) (truncate b)))
 
@@ -68,6 +69,11 @@
 (defmacro capture-stdout (where &body body)
   `(capture *standard-output* ,where ,@body))
 
+(defun magnitude (n)
+  (cond ((plusp n) 1)
+        ((minusp n) -1)
+        (t 0)))
+
 (defmacro no-return (&body body)
   `(progn ,@body (values)))
 
@@ -135,6 +141,11 @@
          ((< ,repnum 1) (return))
          ,@body))))
 
+(defun reverse-magnitude (n)
+  (cond ((plusp n) -1)
+        ((minusp n) 1)
+        (t 0)))
+
 (defun select-n (n list)
   (do* ((item list (cdr item))
         (total (list-length list) (1- total))
@@ -156,8 +167,11 @@
         (decf left))
       (funcall no-fn (car item)))))
 
+; zero is counted as positive here for reasons lost in the mists of
+; time, probably something related to music theory. see also MAGNITUDE
+; and REVERSE-MAGNITUDE
 (defun sign-of (number)
   (if (minusp number) -1 1))
 
 (defmacro while (expr &body body)
-  `(tagbody check (if ,expr (progn ,@body (go check)))))
+  `(block while (tagbody check (if ,expr (progn ,@body (go check))))))

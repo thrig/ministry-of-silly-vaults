@@ -38,7 +38,7 @@
     (t t)))
 (defun rect-inside-overlap? (r1 r2) (rect-overlap? r1 r2 -1 -1))
 
-(defun point-within? (point rect)
+(defun point-inside? (point rect)
   (and
     (>= (car point) (caar rect))
     (<= (car point) (cadr rect))
@@ -235,6 +235,12 @@
     (if (eq (point-col new-point) 0)
       (set-point-col new-point (if (coinflip) 1 -1))
       (set-point-col new-point 0))
+    new-point))
+
+(defun reverse-direction (point)
+  (let ((new-point (copy-point point)))
+    (set-point-row new-point (reverse-magnitude (point-row new-point)))
+    (set-point-col new-point (reverse-magnitude (point-col new-point)))
     new-point))
 
 ; TODO needs testing and may be biased, is there a better way to pick
