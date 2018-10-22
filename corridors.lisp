@@ -24,10 +24,7 @@
   (add-points (agent-position agent) (agent-heading agent)))
 ; always four agents from a starting point
 (defun new-agents-at (point)
-  (let ((here point) (agents nil))
-    (dolist (there +headings+)
-      (push (make-agent :position here :heading there) agents))
-    agents))
+  (mapcar (lambda (h) (make-agent :position point :heading h)) +headings+))
 
 (defparameter *total-moves* 0)
 
