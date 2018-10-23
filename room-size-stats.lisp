@@ -10,6 +10,7 @@
 (load "util")
 (load "common")
 (load "dijkstramap")
+(proclaim '(optimize speed))
 (progn (setq *random-state* (make-random-state t)) t)
 
 (defun random-room-row (r)

@@ -11,14 +11,27 @@
 (defvar +rows+ 10)
 (defvar +cols+ 20)
 
+(declaim (inline copy-point make-point point-row point-col
+                 set-point set-point-row set-point-col
+                 draw-at draw-at-point random-point
+                 get-obj-at random-between p-inbounds?))
+
 ;;; these are '(0 . 0) points (row . col)
 (defun copy-point (point) (cons (car point) (cdr point)))
-(defun make-point (row col) (cons row col))
+(defun make-point (row col)
+  (declare (optimize (speed 3)) (fixnum row col))
+  (cons row col))
 (defun point-row (point) (car point))
 (defun point-col (point) (cdr point))
-(defun set-point (point row col) (rplaca point row) (rplacd point col))
-(defun set-point-row (point value) (rplaca point value))
-(defun set-point-col (point value) (rplacd point value))
+(defun set-point (point row col)
+  (declare (optimize (speed 3)) (fixnum row col)) 
+  (rplaca point row) (rplacd point col))
+(defun set-point-row (point value)
+  (declare (optimize (speed 3)) (fixnum value)) 
+  (rplaca point value))
+(defun set-point-col (point value)
+  (declare (optimize (speed 3)) (fixnum value)) 
+  (rplacd point value))
 
 (defun make-rectangle (p1 p2)
   (when (> (car p1) (car p2)) (rotatef (car p1) (car p2)))
@@ -53,6 +66,7 @@
     np))
 
 (defun draw-at (row col obj)
+  (declare (optimize (speed 3)) (fixnum row col))
   (setf (aref *board* row col)
         (if (functionp obj) (funcall obj) obj))
   (list row col))
@@ -66,12 +80,14 @@
   (while (not (same-point p1 p2))
     (let ((deltar (- (point-row p2) (point-row p1)))
           (deltac (- (point-col p2) (point-col p1))))
+      (declare (optimize (speed 3)) (fixnum deltar deltac))
       (if (< (random 1.0) (/ (abs deltar) (+ (abs deltar) (abs deltac))))
         (set-point-row p1 (+ (point-row p1) (sign-of deltar)))
         (set-point-col p1 (+ (point-col p1) (sign-of deltac))))
       (draw-at-point p1 obj))))
 
 (defun draw-horiz (row col count obj)
+  (declare (optimize (speed 3)) (fixnum row col count))
   (do ((iters (abs count) (1- iters))
        (nudge (if (plusp count) 1 -1)))
     ((or (zerop iters)
@@ -80,6 +96,7 @@
     (setf col (+ col nudge))))
 
 (defun draw-vert (row col count obj)
+  (declare (optimize (speed 3)) (fixnum row col count))
   (do ((iters (abs count) (1- iters))
        (nudge (if (plusp count) 1 -1)))
     ((or (zerop iters)
@@ -122,7 +139,9 @@
     (funcall fn x1 y2)
     (funcall fn x2 y1)))
 
-(defun get-obj-at (row col) (aref *board* row col))
+(defun get-obj-at (row col)
+  (declare (optimize (speed 3)) (fixnum row col))
+  (aref *board* row col))
 (defun get-point-obj (point)
   (aref *board* (point-row point) (point-col point)))
 
@@ -136,16 +155,17 @@
           (draw-at (1- +rows+) c obj))))
 
 ;;; not very interesting nor efficient
-(defun boundary-fill (r c fill limit)
-  (when (array-in-bounds-p *board* r c)
-    (let ((value (get-obj-at r c)))
+(defun boundary-fill (row col fill limit)
+  (declare (optimize (speed 3)) (fixnum row col))
+  (when (array-in-bounds-p *board* row col)
+    (let ((value (get-obj-at row col)))
       (when (and (not (eq value fill))
                  (not (eq value limit)))
-        (draw-at r c fill)
-        (boundary-fill (1+ r) c fill limit)
-        (boundary-fill (1- r) c fill limit)
-        (boundary-fill r (1+ c) fill limit)
-        (boundary-fill r (1- c) fill limit)))))
+        (draw-at row col fill)
+        (boundary-fill (1+ row) col fill limit)
+        (boundary-fill (1- row) col fill limit)
+        (boundary-fill row (1+ col) fill limit)
+        (boundary-fill row (1- col) fill limit)))))
 
 (defun clear-board (&optional (obj *floor*))
   (no-return
@@ -161,6 +181,7 @@
       (fresh-line))))
 
 (defun make-board (rows cols &optional (obj *floor*))
+  (declare (optimize (speed 3)) (fixnum rows cols))
   (make-array (list rows cols)
               :element-type 'character
               :initial-element (if (functionp obj) (funcall obj) obj)))
@@ -205,14 +226,15 @@
 
 ; r <= min .. r < max
 (defun random-between (min max)
+  (declare (optimize (speed 3)) (fixnum min max))
   (when (> min max) (rotatef min max))
   (if (= min max) min
     (let ((len (- max min)))
       (+ min (random len)))))
 
 (defun random-point (&optional (rows +rows+) (cols +cols+))
-  (make-point (random rows)
-              (random cols)))
+  (declare (optimize (speed 3)) (fixnum rows cols))
+  (make-point (random rows) (random cols)))
 
 (defun random-point-around (p mindist)
   (let* ((r1 (random 1.0))
@@ -224,6 +246,7 @@
       (round (+ (point-col p) (* radius (cos angle)))))))
 
 (defun random-point-inside (&optional (rows +rows+) (cols +cols+))
+  (declare (optimize (speed 3)) (fixnum rows cols))
   (make-point (1+ (random (- rows 2)))
               (1+ (random (- cols 2)))))
 
@@ -247,6 +270,8 @@
 ; legal rectanges of particular dimensions within a given rectangle?
 (defun random-rect (min-rows min-cols max-rows max-cols
                     &key (border 0) (rows +rows+) (cols +cols+))
+  (declare (optimize (speed 3))
+           (fixnum min-rows min-cols max-rows max-cols border rows cols))
   (let ((2x-border (* 2 border)))
     (when (or (> (+ 2x-border min-rows) rows)
               (> (+ 2x-border min-cols) cols))
@@ -268,6 +293,7 @@
 ; NOTE returns the list of points high to low, NREVERSE or shuffle the
 ; points if necessary
 (defun n-random-points (n &key (rows (1- +rows+)) (cols (1- +cols+)))
+  (declare (optimize (speed 3)) (fixnum n rows cols))
   (do* ((points nil)
         (total (* rows cols) (1- total))
         (left (min n total))
@@ -281,6 +307,7 @@
       (incf c))))
 
 (defun row-walk (row col fn)
+  (declare (optimize (speed 3)) (fixnum row col))
   (do ((results nil) (r row (1+ r)))
     ((>= r +rows+) results)
     (let ((ret (funcall fn r col)))
@@ -289,6 +316,7 @@
         (push ret results)))))
 
 (defun col-walk (row col fn)
+  (declare (optimize (speed 3)) (fixnum row col))
   (do ((results nil) (c col (1+ c)))
     ((>= c +cols+) results)
     (let ((ret (funcall fn row c)))

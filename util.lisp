@@ -1,8 +1,11 @@
+(declaim (inline decay sign-of random-list-item range))
+
 ; more or less like how Perl does it
 (defun % (a b)
   (mod (truncate a) (truncate b)))
 
 (defun binomial (n p &optional (x 0))
+  (declare (optimize (speed 3)) (fixnum n x))
   (dotimes (i n)
     (and (< (random 1.0) p) (incf x)))
   x)
@@ -18,6 +21,7 @@
 (defmacro coinflip () `(zerop (random 2)))
 
 (defun decay (&key (odds 0.1) (min 1) (max MOST-POSITIVE-FIXNUM))
+  (declare (optimize (speed 3)) (fixnum min max))
   (do ((count min (1+ count)))
     ((or (>= count max) (< (random 1.0) odds)) count)))
 
@@ -70,6 +74,7 @@
   `(capture *standard-output* ,where ,@body))
 
 (defun magnitude (n)
+  (declare (optimize (speed 3)) (fixnum n))
   (cond ((plusp n) 1)
         ((minusp n) -1)
         (t 0)))
@@ -103,6 +108,7 @@
     ((<= p L) (1- k))))
 
 (defun pop-nplus1 (n alist)
+  (declare (optimize (speed 3)) (fixnum n))
   (if (= n 1)
     (prog1
       (cadr alist)
@@ -125,6 +131,7 @@
       (nth (random len) alist))))
 
 (defun range (min max &optional (step 1))
+  (declare (optimize (speed 3)) (fixnum min max step))
   (if (zerop step) (error "step must not be zero"))
   (if (and (< max min) (plusp step)) (setf step (* step -1)))
   (do ((list nil) (op (if (< min max) #'> #'<)))
@@ -142,11 +149,13 @@
          ,@body))))
 
 (defun reverse-magnitude (n)
+  (declare (optimize (speed 3)) (fixnum n))
   (cond ((plusp n) -1)
         ((minusp n) 1)
         (t 0)))
 
 (defun select-n (n list)
+  (declare (optimize (speed 3)) (fixnum n))
   (do* ((item list (cdr item))
         (total (list-length list) (1- total))
         (left (min n total))
@@ -157,6 +166,7 @@
       (decf left))))
 ; similar to previous but acts on each item somehow
 (defun act-on-n (n list yes-fn no-fn)
+  (declare (optimize (speed 3)) (fixnum n))
   (do* ((item list (cdr item))
         (total (list-length list) (1- total))
         (left (min n total)))
@@ -170,8 +180,9 @@
 ; zero is counted as positive here for reasons lost in the mists of
 ; time, probably something related to music theory. see also MAGNITUDE
 ; and REVERSE-MAGNITUDE
-(defun sign-of (number)
-  (if (minusp number) -1 1))
+(defun sign-of (n)
+  (declare (optimize (speed 3)) (fixnum n))
+  (if (minusp n) -1 1))
 
 (defmacro while (expr &body body)
   `(block while (tagbody check (if ,expr (progn ,@body (go check))))))

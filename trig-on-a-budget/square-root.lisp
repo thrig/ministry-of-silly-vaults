@@ -9,6 +9,7 @@
 (defparameter *lookup-array* (make-array (list *boardsize* *boardsize*)))
 
 (load "../util.lisp")
+(proclaim '(optimize speed))
 (progn (setq *random-state* (make-random-state t)) t)
 
 ;(defun makekey (x y)
