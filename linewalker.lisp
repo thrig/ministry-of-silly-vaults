@@ -88,7 +88,7 @@
   (setq *walker-count* (max 1 (isqrt *walker-count*))))
 
 (fresh-line)
-(display-board)
+(no-return (display-board))
 
 ;;; there may also be a need to put more thought into the placement of
 ;;; the targets, e.g. not close to one another

@@ -149,4 +149,4 @@
   (when (eq (row-major-aref *board* n) *room-wall*)
     (setf (row-major-aref *board* n) *room-pillar*)))
 
-(display-board)
+(no-return (display-board))

@@ -90,6 +90,6 @@
 (defparameter *points* (some-whitenoise))
 (dolist (p *points*)
   (draw-at-point p #\x))
-(display-board)
+(no-return (display-board))
 (format t "~&~D~%" (length *points*))
 ;(format t "~&~D~%" *grid-consumed*)

@@ -54,16 +54,16 @@
 
 ;;; fill some percentage of the board with the given type of noise
 ;(white-noise :count (%-of-board 0.10))
-;(display-board)
+;(no-return (display-board))
 ;(clear-array *board* #\x)
 ;(brown-noise :count (%-of-board 0.10))
-;(display-board)
+;(no-return (display-board))
 
 ;;; more variety
 ;(white-noise :obj *plant*  :count (%-of-board 0.03))
 ;(brown-noise :obj *fungus* :count (%-of-board 0.10))
 ;(brown-noise :obj *rock*   :count (%-of-board 0.20))
-;(display-board)
+;(no-return (display-board))
 
 ;;; even more variety
 (white-noise :obj *plant*  :count (%-of-board 0.03))
@@ -73,4 +73,4 @@
 (dolist (p (n-random-points (decay :min 8)))
   (brown-noise :obj *rock* :count (decay :min 5) :point p
                :rand-cols 3 :rand-rows 3))
-(display-board)
+(no-return (display-board))

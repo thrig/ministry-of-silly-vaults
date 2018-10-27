@@ -35,4 +35,4 @@
 (draw-at-point *origin* #\o)
 (repeat 500 (draw-at-point (random-point-around *origin* *min-distance*) #\x))
 
-(display-board)
+(no-return (display-board))

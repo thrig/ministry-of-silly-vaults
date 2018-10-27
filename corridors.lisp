@@ -101,4 +101,4 @@
         (when (eq *floor* (get-obj-at row col)) (setf drawing t)))
     (dimap-calc *dimap*))))
 
-(display-board)
+(no-return (display-board))

@@ -39,7 +39,7 @@
     (let ((N (random-between 1 rlen)))
       (draw-vert row col (* N roff) obj)
       (when (> N 1)
-        (setf len (1- N))
+        (setf N (1- N))
         (fill-corner row (+ col coff) roff coff N N obj)))))
 
 (defun draw-cave (row col rlen clen)
@@ -68,4 +68,4 @@
                    (random-between 1 (- +cols+ 5))
                    (random-between 4 10)
                    (random-between 4 16)))
-(display-board)
+(no-return (display-board))

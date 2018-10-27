@@ -101,4 +101,4 @@
 (carve-out-solid-blocks)
 (add-some-doors)
 (add-border)
-(display-board)
+(no-return (display-board))

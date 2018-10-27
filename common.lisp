@@ -1,7 +1,5 @@
 ;;;;; common routines used by various other scripts
 
-(load "util")
-
 (defvar *board* nil)
 
 (defvar *floor* #\.)
@@ -94,14 +92,16 @@
 (defun draw-corridor (p1 p2 obj)
   (declare (cons p1 p2))
   (draw-at-point p1 obj)
-  (while (not (same-point p1 p2))
-    (let ((deltar (- (point-row p2) (point-row p1)))
-          (deltac (- (point-col p2) (point-col p1))))
-      (declare (fixnum deltar deltac))
-      (if (< (random 1.0) (/ (abs deltar) (+ (abs deltar) (abs deltac))))
-        (set-point-row p1 (+ (point-row p1) (sign-of deltar)))
-        (set-point-col p1 (+ (point-col p1) (sign-of deltac))))
-      (draw-at-point p1 obj))))
+  (tagbody check
+    (when (not (same-point p1 p2))
+      (let ((deltar (- (point-row p2) (point-row p1)))
+            (deltac (- (point-col p2) (point-col p1))))
+        (declare (fixnum deltar deltac))
+        (if (< (random 1.0) (/ (abs deltar) (+ (abs deltar) (abs deltac))))
+          (set-point-row p1 (+ (point-row p1) (sign-of deltar)))
+          (set-point-col p1 (+ (point-col p1) (sign-of deltac))))
+        (draw-at-point p1 obj))
+      (go check))))
 
 (defun draw-horiz (row col count obj)
   (declare (fixnum row col count))
@@ -164,13 +164,12 @@
   (aref *board* (point-row point) (point-col point)))
 
 (defun add-border (&optional (obj *wall*))
-  (no-return
-    (loop for r from 0 to (1- +rows+) do
-          (draw-at r 0 obj)
-          (draw-at r (1- +cols+) obj))
-    (loop for c from 1 to (- +cols+ 2) do
-          (draw-at 0 c obj)
-          (draw-at (1- +rows+) c obj))))
+  (loop for r from 0 to (1- +rows+) do
+        (draw-at r 0 obj)
+        (draw-at r (1- +cols+) obj))
+  (loop for c from 1 to (- +cols+ 2) do
+        (draw-at 0 c obj)
+        (draw-at (1- +rows+) c obj)))
 
 ;;; not very interesting nor efficient
 (defun boundary-fill (row col fill limit)
@@ -186,17 +185,15 @@
         (boundary-fill row (1- col) fill limit)))))
 
 (defun clear-board (&optional (obj *floor*))
-  (no-return
-    (dotimes (r +rows+)
-      (dotimes (c +cols+)
-        (draw-at r c obj)))))
+  (dotimes (r +rows+)
+    (dotimes (c +cols+)
+      (draw-at r c obj))))
 
 (defun display-board ()
-  (no-return
-    (dotimes (r +rows+)
-      (dotimes (c +cols+)
-        (format t "~c" (aref *board* r c)))
-      (fresh-line))))
+  (dotimes (r +rows+)
+    (dotimes (c +cols+)
+      (format t "~c" (aref *board* r c)))
+    (fresh-line)))
 
 (defun make-board (rows cols &optional (obj *floor*))
   (declare (fixnum rows cols))
@@ -281,10 +278,10 @@
   (declare (cons point))
   (let ((new-point (copy-point point)))
     (if (eq (point-row new-point) 0)
-      (set-point-row new-point (if (coinflip) 1 -1))
+      (set-point-row new-point (if (zerop (random 2)) 1 -1))
       (set-point-row new-point 0))
     (if (eq (point-col new-point) 0)
-      (set-point-col new-point (if (coinflip) 1 -1))
+      (set-point-col new-point (if (zerop (random 2)) 1 -1))
       (set-point-col new-point 0))
     (the cons new-point)))
 
