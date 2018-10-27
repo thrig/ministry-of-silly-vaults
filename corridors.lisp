@@ -1,10 +1,11 @@
-;;;;; draw branching corridors and ensure that they are all connected
+;;;;; draw branching corridors and ensure that they are all connected.
+;;;;; probably still too many dead ends (unless you want those)
 
 (defparameter +rows+ 23)
 (defparameter +cols+ 79)
 
 ; how much to fill the board with corridors
-(defparameter +max-moves+ (truncate (* (* +rows+ +cols+) 0.30)))
+(defparameter +max-moves+ (truncate (* (* +rows+ +cols+) 0.25)))
 
 (load "util")
 (load "common")
@@ -22,17 +23,25 @@
 
 (defstruct agent (position nil) (heading nil) (moves 0))
 (defun move-agent (agent)
-  (add-points (agent-position agent) (agent-heading agent)))
+  (declare (agent agent))
+  (the cons (add-points (agent-position agent) (agent-heading agent))))
 ; always four agents from a starting point
 (defun new-agents-at (point)
+  (declare (cons point))
   (mapcar (lambda (h) (make-agent :position point :heading h)) +headings+))
 
 (defparameter *total-moves* 0)
 
-; kill off agents and sometimes branch them out randomly
 (defun update-agent (agent)
+  (declare (agent agent))
   (let ((new-point (move-agent agent)))
-    (cond ((not (point-inside? new-point +bounds+)) nil)
+    ; kill off the agent if it moves outside the bounds or to a square
+    ; that already has been moved to, otherwise possible move, kill, or
+    ; spawn new agents, maybe
+    (cond ((not (point-inside? new-point +bounds+))
+           ; kill at border, turn to limit dead ends at borders
+           (list (make-agent :position (agent-position agent)
+                             :heading (random-turn (agent-heading agent)))))
           ((eq *floor* (get-point-obj new-point)) nil)
           (t (draw-at-point new-point *floor*)
              (incf *total-moves*)
@@ -45,10 +54,19 @@
                      (push (make-agent :position new-point
                                        :heading (reverse-direction newdir))
                            agents))))
-               (when (or (< moves 2) (plusp (random 6)))
-                 (setf (agent-position agent) new-point)
-                 (incf (agent-moves agent))
-                 (push agent agents))
+               (if (or (< moves 2) (plusp (random 6)))
+                 ; not dead yet: move and register as alive
+                 (progn
+                   (setf (agent-position agent) new-point)
+                   (incf (agent-moves agent))
+                   (push agent agents))
+                 ; dead. create a new agent turned to limit dead ends.
+                 ; someone on chat complainint about too many dead ends
+                 ; in a previous version of this code
+                 (push (make-agent :position new-point
+                                   :heading (random-turn
+                                              (agent-heading agent)))
+                       agents))
                agents)))))
 
 ; loop until enough moves have been made by the agents. this may require
