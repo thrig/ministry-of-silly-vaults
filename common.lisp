@@ -288,8 +288,8 @@
 (defun reverse-direction (point)
   (declare (cons point))
   (let ((new-point (copy-point point)))
-    (set-point-row new-point (reverse-magnitude (point-row new-point)))
-    (set-point-col new-point (reverse-magnitude (point-col new-point)))
+    (set-point-row new-point (reverse-signum (point-row new-point)))
+    (set-point-col new-point (reverse-signum (point-col new-point)))
     (the cons new-point)))
 
 ; TODO needs testing and may be biased, is there a better way to pick

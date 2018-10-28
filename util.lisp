@@ -73,13 +73,6 @@
 (defmacro capture-stdout (where &body body)
   `(capture *standard-output* ,where ,@body))
 
-(defun magnitude (n)
-  (declare (fixnum n))
-  (the fixnum
-       (cond ((plusp n) 1)
-             ((minusp n) -1)
-             (t 0))))
-
 (defmacro no-return (&body body)
   `(progn ,@body (values)))
 
@@ -149,12 +142,8 @@
          ((< ,repnum 1) (return))
          ,@body))))
 
-(defun reverse-magnitude (n)
-  (declare (fixnum n))
-  (the fixnum
-       (cond ((plusp n) -1)
-             ((minusp n) 1)
-             (t 0))))
+(defun reverse-signum (n)
+  (* (signum n) -1))
 
 (defun select-n (n list)
   (declare (fixnum n))
@@ -180,8 +169,7 @@
       (funcall no-fn (car item)))))
 
 ; zero is counted as positive here for reasons lost in the mists of
-; time, probably something related to music theory. see also MAGNITUDE
-; and REVERSE-MAGNITUDE
+; time, probably something related to music theory. see also SIGNUM
 (defun sign-of (n)
   (declare (fixnum n))
   (the fixnum (if (minusp n) -1 1)))
