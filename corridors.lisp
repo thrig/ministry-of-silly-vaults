@@ -82,9 +82,8 @@
 ; random point in each unconnected area (kluge)
 (defparameter *dimap* (make-dimap *board*))
 (dimap-calc *dimap*)
-(setf (row-major-aref *dimap*
-                      (random-list-item (dimap-unconnected *dimap*)))
-      *dimap-cost-min*)
+(dimap-setf-major *dimap*
+  (random-list-item (dimap-unconnected *dimap*)) *dimap-cost-min*)
 (dimap-calc *dimap*)
 (do ((unconn (dimap-unconnected *dimap*) (dimap-unconnected *dimap*)))
   ((null unconn) nil)
@@ -97,7 +96,7 @@
       (if drawing
         (progn
           (draw-at row col *floor*)
-          (setf (aref *dimap* row col) *dimap-cost-max*))
+          (dimap-setf *dimap* (row col) *dimap-cost-max*))
         (when (eq *floor* (get-obj-at row col)) (setf drawing t)))
     (dimap-calc *dimap*))))
 

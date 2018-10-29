@@ -5,6 +5,8 @@
 (defvar *dimap-cost-min*  0)
 (defvar *dimap-cost-bad* -1)
 
+(declaim (inline dimap-setf-major))
+
 ;;; to convert from array of characters given a character array
 ;;; #2A((#\. #\# #\x) (#\# #\. #\.) (#\. #\. #\.)) for a level map
 ;;;   .#x
@@ -46,11 +48,12 @@
 
 ;;; (hopefully) translate the row-major number to a list of array index
 (defun dimap-array-coords (aref n)
+  (declare (fixnum n))
   (let ((coords nil))
     (dolist (size (nreverse (array-dimensions aref)))
       (push (mod n size) coords)
       (setf n (/ (- n (first coords)) size)))
-    coords))
+    (the list coords)))
 
 (defun dimap-calc (dimap)
   (do ((iters 0 (1+ iters)) (done nil)) (done iters)
@@ -74,6 +77,7 @@
 ; (coords . value) pairs for adjancent squares with lower values (if
 ; any) from the given major-aref
 (defun dimap-next (dimap n)
+  (declare (fixnum n))
   (and (>= n (array-total-size dimap))
        (error "index out of bounds for array"))
   (let ((value (row-major-aref dimap n)))
@@ -89,6 +93,7 @@
                                          (cons dimap c)))) adj))))))
 
 (defun dimap-path (dimap n pickfn)
+  (declare (fixnum n))
   (and (>= n (array-total-size dimap))
        (error "index out of bounds for array"))
   (do ((path nil) (options (dimap-next dimap n) (dimap-next dimap n)))
@@ -97,12 +102,19 @@
                          (cons dimap (car (funcall
                                             pickfn options))))) path)))
 
+(defmacro dimap-setf (dimap (&rest xy) cost)
+  `(setf (aref ,dimap ,@xy) ,cost))
+
+(defun dimap-setf-major (dimap offset cost)
+  (declare (fixnum offset cost))
+  (setf (row-major-aref dimap offset) cost))
+
 (defun dimap-unconnected (dimap)
   (let ((unconn nil))
     (dotimes (n (array-total-size dimap))
       (and (eq (row-major-aref dimap n) *dimap-cost-max*)
            (push n unconn)))
-    unconn))
+    (the list unconn)))
 
 ; four dimensions? ¡no problema!
 ;(defparameter level

@@ -1,9 +1,6 @@
 CFLAGS+=-std=c99 -lm
 #CFLAGS+=-g
 
-%.fasl: %.lisp
-	sbcl --noinform --non-interactive --eval '(compile-file (second *posix-argv*))' $<
-
 crawlpaper: crawlpaper.go
 	go build crawlpaper.go
 

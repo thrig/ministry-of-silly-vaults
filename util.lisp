@@ -168,6 +168,10 @@
         (decf left))
       (funcall no-fn (car item)))))
 
+; from "On Lisp" chapter 7
+(defmacro showm (expr)
+  `(pprint (macroexpand-1 ',expr)))
+
 ; zero is counted as positive here for reasons lost in the mists of
 ; time, probably something related to music theory. see also SIGNUM
 (defun sign-of (n)
