@@ -9,10 +9,9 @@
 (defvar +rows+ 10)
 (defvar +cols+ 20)
 
-(declaim (inline copy-point make-point point-row point-col
-                 set-point set-point-row set-point-col
-                 draw-at draw-at-point random-point
-                 get-obj-at random-between p-inbounds?))
+(declaim (inline copy-point make-point point-row point-col point-major
+                 set-point set-point-row set-point-col draw-at draw-at-point
+                 random-point get-obj-at random-between p-inbounds?))
 
 ;;; these are '(0 . 0) points (row . col)
 (defun copy-point (point)
@@ -25,6 +24,9 @@
   (the fixnum (car point)))
 (defun point-col (point)
   (the fixnum (cdr point)))
+; for use with row-major-aref (see dijkstramap.lisp)
+(defun point-major (point)
+  (array-row-major-index *board* (point-row point) (point-col point)))
 (defun set-point (point row col)
   (declare (fixnum row col)) 
   (rplaca point row) (rplacd point col))
@@ -89,9 +91,9 @@
         (if (functionp obj) (funcall obj) obj))
   (the cons point))
 
-(defun draw-corridor (p1 p2 obj)
+(defun draw-corridor (p1 p2 fn)
   (declare (cons p1 p2))
-  (draw-at-point p1 obj)
+  (funcall fn p1)
   (tagbody check
     (when (not (same-point p1 p2))
       (let ((deltar (- (point-row p2) (point-row p1)))
@@ -100,7 +102,7 @@
         (if (< (random 1.0) (/ (abs deltar) (+ (abs deltar) (abs deltac))))
           (set-point-row p1 (+ (point-row p1) (sign-of deltar)))
           (set-point-col p1 (+ (point-col p1) (sign-of deltac))))
-        (draw-at-point p1 obj))
+        (funcall fn p1))
       (go check))))
 
 (defun draw-horiz (row col count obj)

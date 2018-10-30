@@ -38,12 +38,7 @@
     (make-point 0 (random-between *room-max-col* (- +cols+ *room-max-col*)))
     (make-point (1- +rows+)
                 (random-between *room-max-col* (- +cols+ *room-max-col*)))
-    *wall-vein*))
-;(draw-corridor
-;  (make-point (random-between *room-max-row* (- +rows+ *room-max-row*)) 0)
-;  (make-point (random-between *room-max-row* (- +rows+ *room-max-row*))
-;              (1- +cols+))
-;  *wall-vein*)
+    #'(lambda (p) (draw-at-point p *wall-vein*))))
 
 (defparameter *rooms* nil)
 
