@@ -31,18 +31,31 @@
   (declare (cons point))
   (mapcar (lambda (h) (make-agent :position point :heading h)) +headings+))
 
+; mostly macro practice
+(defmacro animate (start update)
+  (let ((label (gensym)) (queue (gensym)))
+    `(prog ((,queue ,start))
+       ,label
+           (and (null ,queue) (return))
+           (setq ,queue (mapcan ,update ,queue))
+           (go ,label))))
+
 (defun nudge (agent orig)
-  (let ((nudge (add-points orig (random-turn (agent-heading agent)))))
+  (let* ((dir (random-turn (agent-heading agent)))
+         (nudge (add-points orig dir)))
     (if (point-inside? nudge +bounds+)
+      (draw-at-point nudge *floor*)
       (progn
-        (draw-at-point nudge *floor*)
-        nudge)
-      orig)))
+        (setq dir (reverse-direction dir)
+              nudge (add-points orig dir))
+        (if (point-inside? nudge +bounds+)
+          (draw-at-point nudge *floor*)
+          orig)))))
 
 (defparameter *total-moves* 0)
 
-; can return itself, or not, or one or more other new agents hopefully
-; going off in new directions
+; can return itself, or not (in which case it dies), or also return one
+; or more new agents hopefully going off in new directions
 (defun update-agent (agent)
   (declare (agent agent))
   (let ((new-point (move-agent agent)))
@@ -93,8 +106,7 @@
 (while (< *total-moves* +max-moves+)
   (let ((start (random-point-inside)))
     (draw-at-point start *floor*)
-    (do ((agents (new-agents-at start) (mapcan #'update-agent agents)))
-      ((null agents)))))
+    (animate (new-agents-at start) #'update-agent)))
 
 ; ensure everything is connected with some Dijkstra magic
 (defparameter *dimap* (make-dimap *board*))
