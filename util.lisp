@@ -179,4 +179,7 @@
   (the fixnum (if (minusp n) -1 1)))
 
 (defmacro while (expr &body body)
-  `(block while (tagbody check (if ,expr (progn ,@body (go check))))))
+  (let ((label (gensym)))
+    `(block while
+      (tagbody ,label
+        (if ,expr (progn ,@body (go ,label)))))))
