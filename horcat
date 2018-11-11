@@ -1,0 +1,42 @@
+#!/usr/bin/env perl
+#
+# combines maps as columns (a horizontal cat, so to speak)
+# see Game::TextPatterns for how to use the @fill, e.g.
+#
+#   --fill x --fill y
+#
+# to handle the two different cases. the input files must not have
+# ragged edges; that is, there must only be a single number of columns
+# in each line of an input file (but the input files need not all have
+# the same number of columns)
+
+use 5.24.0;
+use warnings;
+
+use File::Slurper qw(read_text);
+use Game::TextPatterns;
+use Getopt::Long qw(GetOptions);
+
+GetOptions( 'fill=s' => \my @fill ) or exit 1;
+die "Usage: horcat file1 file2 [..]\n" unless @ARGV > 1;
+
+$fill[0] = '?' unless @fill;
+
+my @pats;
+for my $f (@ARGV) {
+    eval { push @pats, Game::TextPatterns->new( pattern => read_text $f ); };
+    if ($@) {
+        my $msg;
+        if ( $@ =~ m/columns must be of equal length/ ) {
+            $msg = "columns not all the same length";
+        } else {
+            $msg = $@;
+            chomp($msg);
+        }
+        die "could not parse '$f': $msg\n";
+    }
+}
+
+my $first = shift @pats;
+$first->append_cols( \@fill, $_ ) for @pats;
+print $first->string;
