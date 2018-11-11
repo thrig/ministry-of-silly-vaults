@@ -8,5 +8,5 @@ for my $n (@ARGV) {
     die "value out of range: $n\n" if $n > 100;
     $n *= 100 if $n < 1;
     my $o = Odds->new( odds => $n );
-    say join "\t", map $o->$_, qw(odds float uint32);
+    say join "\t", map $o->$_, qw(odds float uint32 uint64);
 }

@@ -26,3 +26,5 @@ that the PRD is less likely to go on runs of misses
     Median    14.000000   28.000000
     3rd Qu.   18.000000   31.000000
     Max.      28.000000   49.000000
+
+where how much less likely depends on how the PRD is designed
