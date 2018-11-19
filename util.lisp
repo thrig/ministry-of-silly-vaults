@@ -161,7 +161,7 @@
   (do* ((item list (cdr item))
         (total (list-length list) (1- total))
         (left (min n total)))
-    ((null item) nil)
+    ((null item))
     (if (and (plusp left) (< (random 1.0) (/ left total)))
       (progn
         (funcall yes-fn (car item))

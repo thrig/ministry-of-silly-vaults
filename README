@@ -51,10 +51,13 @@ another option
     crossing
       example use of the Game::DijkstraMap Perl module
 
+    explorer.lisp
+      level map tester, lets you move around a provided board
+
+        sbcl --script explorer.lisp board
+
     linewalker.lisp
       walkers converge on a target point, carving out lines
-
-        sbcl --script linewalker.lisp
 
     noise
       illustration of "white" noise versus "brown" noise
