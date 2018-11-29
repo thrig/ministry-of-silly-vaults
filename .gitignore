@@ -7,6 +7,5 @@
 *.o
 *.out
 *.tex.bak
-crawlpaper
 debug
 termlbrot

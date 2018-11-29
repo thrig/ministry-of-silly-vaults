@@ -1,0 +1,71 @@
+#!/usr/bin/env perl
+#
+# crawlpaper. like wallpaper, but for crawl. or most any roguelike
+#
+#   make depend
+#   doas pkg_add feh noto-fonts
+#   ./crawlpaper < board
+#   feh crawlpaper.png
+
+use 5.24.0;
+use warnings;
+use Getopt::Long qw(GetOptions);
+use Imager;
+use Imager::Fill;
+
+GetOptions(
+    'bgcolor|bg=s' => \my $Flag_Bgcolor,
+    'fgcolor|fg=s' => \my $Flag_Fgcolor,
+    'font=s'       => \my $Flag_Font,
+    'fontsize=i'   => \my $Flag_Fontsize,
+    'width|w=i'    => \my $Flag_Width,
+    'height|h=i'   => \my $Flag_Height,
+    'xoff=i'       => \my $Flag_Xoffset,
+    'yoff=i'       => \my $Flag_Yoffset,
+    'ysize=i'      => \my $Flag_Ysize,
+) or exit 1;
+
+$Flag_Bgcolor  //= '#eeeeee';
+$Flag_Fgcolor  //= '#000000';
+$Flag_Font     //= '/usr/local/share/fonts/noto/Cousine-Regular.ttf';
+$Flag_Fontsize //= 34;
+$Flag_Width    //= 1366;
+$Flag_Height   //= 768;
+$Flag_Xoffset  //= 56;
+$Flag_Yoffset  //= 34;
+$Flag_Ysize    //= 36;
+
+my $out = shift // 'crawlpaper.png';
+
+my $img = Imager->new( xsize => $Flag_Width, ysize => $Flag_Height ) or die;
+my $font = Imager::Font->new( file => $Flag_Font )
+  or die "could not font ($! $@)\n";
+
+my $bgcolor = Imager::Color->new($Flag_Bgcolor);
+my $fgcolor = Imager::Color->new($Flag_Fgcolor);
+
+my $fill = Imager::Fill->new( solid => $bgcolor );
+$img->box(
+    color => $bgcolor,
+    fill  => $fill,
+    xmax  => $Flag_Width,
+    xmin  => 0,
+    ymax  => $Flag_Height,
+    ymin  => 0,
+);
+
+my $i = 0;
+while ( my $line = readline *STDIN ) {
+    chomp $line;
+    $img->string(
+        aa     => 1,
+        color  => $fgcolor,
+        font   => $font,
+        size   => $Flag_Fontsize,
+        string => $line,
+        x      => $Flag_Xoffset,
+        y      => $Flag_Yoffset + $Flag_Ysize * $i++,
+    );
+}
+
+$img->write( file => $out );

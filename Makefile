@@ -19,9 +19,6 @@ common.fasl: common.lisp
 
 corridors.lisp: util.fasl common.fasl dijkstramap.fasl
 
-crawlpaper: crawlpaper.go
-	go build crawlpaper.go
-
 dijkstramap.fasl: dijkstramap.lisp
 
 dijkstramap.pdf: dijkstramap.tex
@@ -47,9 +44,8 @@ voss.fasl: voss.lisp
 clean:
 	git clean --force -x
 
-# this in turn requires perl and App::cpanminus installed. And, make.
+# this in turn requires perl and App::cpanminus installed. and make
 depend:
 	cpanm --installdeps .
-	go get github.com/fogleman/gg
 
 .PHONY: around.lisp caves.lisp clean corridors.lisp depend linewalker.lisp noise.lisp poisson-disk-sample.lisp room-size-stats.lisp rooms-random.lisp
