@@ -1,0 +1,17 @@
+(progn (setq *random-state* (make-random-state t)) (values))
+
+(let ((odds 0.7))
+  (defun resource? ()
+    (setq odds (+ odds 0.15))
+    (if (< (random 1.0) odds)
+        (prog1 t (setq odds (- odds 0.4)))
+        nil)))
+
+(let ((starved 0) (trials 10000))
+  (dotimes (n trials)
+    (let ((waffles 2))
+      (dotimes (level 20)
+        (when (zerop (mod level 3)) (decf waffles))
+        (when (minusp waffles) (incf starved) (return))
+        (when (resource?) (incf waffles)))))
+  (format t "~d ~f%~%" starved (* (/ starved trials) 100)))
