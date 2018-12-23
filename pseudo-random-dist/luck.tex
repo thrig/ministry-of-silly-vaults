@@ -15,7 +15,7 @@
 
 \title{Luck and Roguelikes}
 \author{Jeremy Mates}
-\date{December 14, 2018}
+\date{December 22, 2018}
 
 \usepackage{hyperref}
 \hypersetup{pdfauthor={Jeremy Mates},pdftitle={Luck and Roguelikes}}
@@ -558,8 +558,200 @@ the influence of staircakes on the hunger level. Another met
          ________)/\\_//(\/(/\)/\//\/|_)_______
 \end{verbatim}
 \clearpage
-\center
+\begin{center}
 The management would like to apologize\\
 for the sudden and seemingly random\\
 end of this document.
+\end{center}
+\clearpage
+
+\section*{Appendix E}
+
+Floating eyes in Rogue pose particular problems when luck is involved,
+or rather when the player is unlucky. Eyes spawn from D2 through D11 and
+overlap with Rust monsters on D9 through D11. Eyes are not hostile,
+unless attacked by the player (and monsters sometimes spawn in places
+where they must be attacked) or should the player be blessed with a ring
+of aggravate monsters. Rust monsters were mentioned as they are another
+zero-damage monster that applies only status effects; a player may be
+boxed in between two Eyes in a corridor or an Eye and a Rust monster.
+
+\begin{verbatim}
+     |........|                          -+-
+     |........|                     #####+..|
+     |........+###########E@R########    |..|
+     -------+--                          ----
+\end{verbatim}
+
+How can this be a problem?
+
+\begin{verbatim}
+/* fight.c */
+    when 'E':
+	/*
+	 * The gaze of the floating eye hypnotizes you
+	 */
+	if (on(player, ISBLIND))
+	    break;
+	if (!no_command)
+	{
+	    addmsg("You are transfixed");
+	    if (!terse)
+		addmsg(" by the gaze of the floating eye.");
+	    endmsg();
+	}
+	no_command += rnd(2)+2;
+
+/* command.c */
+        if (no_command)
+        {
+            if (--no_command == 0)
+                msg("You can move again.");
+        }
+        else
+\end{verbatim}
+
+There is a non-zero risk of a softlock should the Eye hit the player
+enough times as each hit adds two to three to \texttt{no\_command} which
+is only decremented by one each turn. Worse, the player has no move
+after becoming unparalyzed; this gives the Eye another chance for a hit.
+Worse, there is no way for the player to starve to death;
+\texttt{stomach} in \texttt{daemons.c} only causes the player to
+sometimes faint, and not if already paralyzed. Hence, there is a risk of
+a softlock where the game never exits because the player is paralyzed
+and can neither move nor die. \\
+
+The critical code is under \texttt{roll\_em} from \texttt{fight.c} that
+determines whether the Eye hits, and whether the player misses though to
+simplify our model we shall assume the player always misses\textendash a
+player will win most fights against an Eye. \texttt{roll\_em} is
+complicated; it handles both monsters and the player and various weapon
+types the player may wield. Some will advise stepping through it with a
+debugger; I belong more to the ``add some print statements'' school of
+thought. A logfile with \texttt{roll\_em} results from real games might
+help with future statistical analysis\ldots\footnote{Another option is
+some sort of logging API or database, which is viable if you happen to
+have one of those just lying around, or when you operate at a scale that
+demands such, or when you've written a bunch of similar games and
+have abstracted out logging for the damage function.}
+
+\begin{verbatim}
+#include <stdio.h>
+#include <stdlib.h>
+FILE *dbgfh;
+...
+    dbgfh = fopen("roll_em", "a");
+    if (dbgfh == NULL) abort();
+...
+    fprintf(dbgfh, "alvl=%d def_ac=%d wplus=%d\n", att->s_lvl, def_arm,
+            hplus + str_plus(&att->s_str));
+\end{verbatim}
+
+Anyways, the relevant code from \texttt{roll\_em} is the player's
+defence and whether the ``swing'' of the Eye connects,
+
+\begin{verbatim}
+    if (swing(att->s_lvl, def_arm, hplus+str_plus(&att->s_str)))
+\end{verbatim}
+
+where the \texttt{s\_lvl} of an Eye is \texttt{1} and the player
+\texttt{def\_arm} will depend on their armor and whether they are
+wearing any rings of protection. Rust monsters have a strong influence
+on armor; a player on D9 through D11 will likely have a worse AC than
+on earlier levels. \texttt{swing} is a d20 roll as found in Dungeons
+\& Dragons.
+
+\begin{verbatim}
+int
+swing(int at_lvl, int op_arm, int wplus)
+{
+    int res = rnd(20)+1;
+    int need = (21-at_lvl)-op_arm;
+
+    return (res+wplus >= need);
+}
+\end{verbatim}
+
+\texttt{wplus} is difficult to track down as the details are scattered
+through \texttt{init.c} and \texttt{monsters.c} though for an Eye is
+\texttt{0}. With some algebra \texttt{swing} may be converted into a
+test whether the player (of a given armor class) is frozen:
+
+\begin{verbatim}
+int gaze(int player_ac)
+{
+    int res = rnd(20) + 1;
+    int need = 20 - player_ac;
+
+    return (res >= need);
+}
+\end{verbatim}
+
+The player armor is the deciding factor if we (again) ignore the
+likely case where the player first kills the Eye before it can get a
+paralyze in. If not\ldots
+
+\begin{verbatim}
+int softlock(int player_ac, int limit)
+{
+    int no_command = 0;
+    int i;
+    for (i = 0; i < limit; i++) {
+        if (gaze(player_ac)) no_command += rnd(2) + 2;
+        /* TWEAK - what happens if one or more rnd calls are made here? */
+        //rnd(100);
+        if (no_command) --no_command;
+        if (no_command == 0) break;
+    }
+    return (i == limit) ? 1 : 0;
+}
+\end{verbatim}
+
+Similar to how fractals are calculated the above tests whether the
+player has no moves up to some limit. Over many different seeds and many
+trials and using a limit of 10,000 the mean odds of the player having no
+move for various armor values is as follows.
+
+\vskip 1em%
+\begin{tabu} spread 0pt{|X|X|} \hline
+AC & Odds \\ \hline
+6 & 0\% \\ \hline
+8 & 12\% \\ \hline
+10 & 32\% \\ \hline
+12 & 47\% \\ \hline
+\end{tabu}
+\vskip 1em%
+
+These numbers are approximate, as the use of \texttt{rnd} is likely not
+the same as in the game. That is, other calls to \texttt{rnd} will
+influence these results because the generator (as shown above) is bad.
+Uncomment the \texttt{rnd(100)} in \texttt{softlock} and compare the
+output of new runs to see this difference. AC 6 may see lock runs of 100
+or more turns if the player is very unlucky, but never 10,000. \\
+
+With two \texttt{E} attacking the player in a corridor the situation
+would be even worse; woe to the player with a ring of aggravate monsters
+and bad armor\textendash and an AC of 9 or 10 is common on D9 and
+onwards due to Rust monsters.
+
+\subsection*{Possible Solutions to Avoid or Limit the Risk of Softlock}
+
+\begin{itemize}
+\item{Add code to prevent paralyzation for some number of turns following a paralyze.\footnote{Crawl added this to prevent repeated banishment to the Abyss by the banishment spell.}}
+\item{Adjust the food code so the player can actually starve to death.}
+\item{Alter Floating eye generation to not overlap with Rust monsters.}
+\item{Cause Floating eyes to summon monsters.\footnote{POWDER does this.} Probably bad with Rogue corridors.}
+\item{Eliminate Floating eyes from the game.}
+\item{Make Floating eyes do a very small amount of damage so the player can die to one.}
+\item{Make players of higher levels less likely to be affected.}
+\item{Only increment \texttt{no\_command} when the player is not already paralyzed, possibly in conjunction with a longer base duration.}
+\item{Set a cap on the maximum duration a player can be paralyzed.}
+\end{itemize}
+
+Some of these may require significant code changes or may significantly
+change the game. For example \texttt{command.c} gives the monsters a
+move after the player can move again; this may lead to a different form
+of a softlock where the player would be pressing space to clear an
+endless stream of messages related to their paralyze status.
+
 \end{document}
