@@ -1,0 +1,72 @@
+#!/usr/bin/env perl
+#
+# idea for a circular buffer to hold subsequent game events, with the
+# caveat that no event can be scheduled more than the size of the
+# circular buffer out (unless one schedules an event with a counter that
+# knows how to reschedule itself until that counter runs out, at which
+# point the desired event is inserted by that counter event...)
+#
+# for a queue of 8 elements this means the player could be speed 1..8;
+# if normal moves are cost 4 those would get scheduled 4 turns out; with
+# a speed potion their moves might then be 3 turns out; stereotypical
+# Jackals would move at cost 2; maybe Dwarves are slow to move (cost 6)
+# but have a quick attack (cost 1); etc
+#
+# one downside is that things must reschedule themselves--otherwise,
+# they do not move. it may be interesting to compare this method to
+# other movement systems to see whether one or the other is more
+# efficient or simpler
+
+use 5.24.0;
+use warnings;
+use Carp "croak";
+use Function::Parameters;
+use Types::Standard "Int";
+
+# in JavaLISP this might be called a LAMBDAFactory
+fun make_cbuf( Int $size ) {
+    croak "nope: $size < 2" if $size < 2;
+    my @buf;
+    my $cur = 0;
+    return (
+        fun() {
+            my $ret = $buf[$cur];
+            $buf[ $cur++ ] = undef;
+            $cur %= $size;
+            return $ret;
+        },
+        fun( Int $offset, @events ) {
+            croak "nope: $offset < 1" if $offset < 1;
+            croak "nope: $offset > $size" if $offset > $size;
+            # -1 is due to above incrementing $cur to the next turn
+            # while the event loop below is still on the previous one
+            # (one could instead have a third function that increments
+            # $cur that is called at the end of the event loop and then
+            # no messing with $cur, above)
+            push $buf[ ( $cur + $offset - 1 ) % $size ]->@*, @events;
+        },
+    );
+}
+
+my ( $happenings, $schedule ) = make_cbuf 8;
+
+# pre-loop events are tricky due to the -1 offset
+$schedule->( 0 + 1, "  event from start" );
+$schedule->( 4 + 1, "  event from start" );
+
+for my $t ( 0 .. 12 ) {
+    say "turn $t";
+    # this clears the events for the current slot, allowing events to be
+    # scheduled out at the size of the buffer
+    my $events = $happenings->();
+    # the events here are strings, presumably they would be in a game
+    # structs or objects acted on or called as appropriate
+    say for $events->@*;
+    $schedule->( 2, "  event %2 from $t" )   if $t % 2 == 0;
+    $schedule->( 8, "  long event from $t" ) if $t == 0;
+}
+
+# other innovations might be the means to pre-pend or post-pend new
+# events, though that could also happen via a priority set on whatever
+# is being queued and then sorting the events for the turn. here, older
+# events happen before newer ones (age before beauty)

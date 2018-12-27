@@ -7,3 +7,4 @@ requires 'Imager';
 requires 'List::Util';
 requires 'List::UtilsBy';
 requires 'Math::Trig';
+requires 'Types::Standard';

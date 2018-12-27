@@ -45,7 +45,10 @@ clean:
 	git clean --force -x
 
 # this in turn requires perl and App::cpanminus installed. and make
+# the LISP could, in theory, be any Common LISP implementation though
+# unix argument parsing quickly gets into unportability (CLI-ARGS)
 depend:
 	cpanm --installdeps .
+	sbcl --version
 
-.PHONY: around.lisp caves.lisp clean corridors.lisp depend linewalker.lisp noise.lisp poisson-disk-sample.lisp room-size-stats.lisp rooms-random.lisp
+.PHONY: clean depend around.lisp caves.lisp clean corridors.lisp depend linewalker.lisp noise.lisp poisson-disk-sample.lisp room-size-stats.lisp rooms-random.lisp
