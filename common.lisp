@@ -68,10 +68,8 @@
 (defun point-inside? (point rect)
   (the boolean
        (and
-         (>= (car point) (caar rect))
-         (<= (car point) (cadr rect))
-         (>= (cdr point) (cdar rect))
-         (<= (cdr point) (cddr rect)))))
+         (<= (caar rect) (car point) (cadr rect))
+         (<= (cdar rect) (cdr point) (cddr rect)))))
 
 (defun add-points (p1 &rest points)
   (let ((np (copy-point p1)))

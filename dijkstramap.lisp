@@ -85,8 +85,7 @@
       nil
       (let* ((coords (dimap-array-coords dimap n))
              (adj (dimap-adjacent-squares dimap coords)))
-        (mapcan (lambda (cv) (and (< (cdr cv) value)
-                                  (> (cdr cv) *dimap-cost-bad*)
+        (mapcan (lambda (cv) (and (< *dimap-cost-bad* (cdr cv) value)
                                   (list cv)))
                 (mapcar (lambda (c)
                           (cons c (apply #'aref

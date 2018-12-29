@@ -32,7 +32,7 @@
       (decf n))))
 
 (defun if-legal (new max)
-  (and (>= new 0) (< new max) new))
+  (and (< -1 new max) new))
 
 (defun nearby (x max range)
   (setf range (if (oddp range) range (1+ range)))
