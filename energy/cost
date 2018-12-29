@@ -1,0 +1,38 @@
+#!/usr/bin/env perl
+#
+# cost-based energy model where particular moves cost some value; each
+# go-round the minimum cost is whacked off the things that move and
+# anything at zero gets a new move (one could also add a certain amount
+# each turn, but that's more or less the same thing)
+
+use 5.24.0;
+use warnings;
+use List::Util qw(min);
+
+# animates could also spawn with a longer delay before activation--like
+# Lich do in Brogue--instead of on the next turn
+use constant { ANI_NAME => 0, ANI_COST => 1, START => 1 };
+sub make_animate (_) { [ $_[0], START ] }
+
+my @animates = map make_animate, qw(Billy Frank Louis);
+
+# moves here are tied to turns; they need not be, and could be arbitrary
+# values such as 1000 for a non-diagonal move or 1414 for diagonal moves
+my $moves = 10;
+my $turn  = 0;
+while ( $moves > 0 ) {
+    my $min = min map $_->[ANI_COST], @animates;
+    $turn += $min;
+    printf "% 3d  %d min cost\n", $turn, $min;
+    for my $ani (@animates) {
+        $ani->[ANI_COST] -= $min;
+        if ( $ani->[ANI_COST] <= 0 ) {
+            # this would vary by the move the animate selects and how
+            # much that costs
+            $ani->[ANI_COST] += 1 + int rand 8;
+            printf "% 3d  %s moves - next +%d\n", $turn, $ani->@*;
+            $moves--;
+        }
+    }
+    # dead animates would need to be removed from the array, somehow
+}
