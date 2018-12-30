@@ -1,0 +1,36 @@
+#!/usr/bin/env perl
+use 5.24.0;
+use warnings;
+use List::Util qw(shuffle);
+use Queue::Priority;
+
+package Animate {
+    use Moo;
+    has qw(name is ro);
+    has qw(cost is rw default), sub { 0 };
+    use overload
+      '""'  => sub { $_[0]->name },
+      '<=>' => sub { $_[0]->cost <=> $_[1]->cost };
+}
+
+my @animates = map Animate->new( name => $_ ), qw(Billy Frank Louis);
+
+my $q = Queue::Priority->new( scalar @animates );
+$q->insert($_) for @animates;
+
+my $moves = 20;
+while ( $moves > 0 ) {
+    my @todo = $q->remove;
+    my $turn = $todo[0]->cost;
+    push @todo, $q->remove while !$q->is_empty and $q->peek->cost == $turn;
+    # there could instead be an initiative check here to determine who
+    # goes when during a turn. the shuffle otherwise should remove any
+    # bias that might come from the queue implementation
+    for my $ani ( shuffle @todo ) {
+        my $next = 1 + int rand 2;
+        $ani->cost( $turn + $next );
+        $q->insert($ani);
+        printf "% 3d  %s next %d\n", $turn, $ani->name, $next;
+        $moves--;
+    }
+}
