@@ -1,0 +1,139 @@
+#!/usr/bin/env perl
+#
+# attempt to compare different energy systems using a more or less level
+# playing field (or the Procrustean wedging of them into a turn-based
+# bed). the energy systems are:
+#
+#  1. cost-based. each animate moves when its cost returns to 0; that
+#     move adds some value to the cost. each turn the minimum cost is
+#     removed from each animate
+#  2. circular buffer. animates to move are inserted as appropriate
+#     somewhere into a circular buffer, with the caveat that without
+#     additional complications no move can be scheduled beyond what the
+#     buffer can hold (the other two do not have this restriction)
+#  3. priority queue. a standard priority queue algorithm is used to
+#     schedule events. a turn-based epoch prevents actions with a low
+#     priority from forever drowning out longer events from happening
+
+use 5.24.0;
+use warnings;
+use Benchmark qw(cmpthese);
+use Function::Parameters;
+use List::Util qw(min shuffle);
+use Queue::Priority;
+
+package Animate {
+    use Moo;
+    has qw(name is ro);
+    has qw(cost is rw);
+    use overload
+      '""'  => sub { $_[0]->name },
+      '<=>' => sub { $_[0]->cost <=> $_[1]->cost };
+}
+
+fun make_cbuf($size) {
+    my @buf;
+    my $cur = 0;
+    return (
+        sub {
+            my $ret = $buf[$cur];
+            $buf[ $cur++ ] = undef;
+            $cur %= $size;
+            return $ret;
+        },
+        fun( $offset, @events ) {
+            push $buf[ ( $cur + $offset - 1 ) % $size ]->@*, @events;
+        },
+    );
+}
+
+fun make_animates( :$count, :$cost ) {
+    [ map Animate->new( name => $_, cost => $cost ), 1 .. $count ]
+}
+
+fun run_cost( $animates, $moves, $costfn ) {
+    my $turn = 0;
+    while ( $moves > 0 ) {
+        my $min = min map $_->cost, $animates->@*;
+        $turn += $min;
+        my @todo;
+        for my $ani ( $animates->@* ) {
+            my $when = $ani->cost - $min;
+            if ( $when <= 0 ) {
+                push @todo, $ani;
+            } else {
+                $ani->cost($when);
+            }
+        }
+        for my $ani ( shuffle @todo ) {
+            $ani->cost( $costfn->() );
+            $moves--;
+        }
+    }
+}
+
+fun run_cbuf( $bufsize, $animates, $moves, $costfn ) {
+    my ( $active, $insert ) = make_cbuf $bufsize;
+    for my $ani ( $animates->@* ) {
+        $insert->( 1, $ani );
+    }
+    my $turn = 0;
+  TURN: while ( $moves > 0 ) {
+        $turn++;
+        my $todo = $active->() // next TURN;
+        for my $ani ( shuffle $todo->@* ) {
+            $insert->( $costfn->(), $ani );
+            $moves--;
+        }
+    }
+}
+
+fun run_priq( $animates, $moves, $costfn ) {
+    my $q = Queue::Priority->new( scalar $animates->@* );
+    for my $ani ( $animates->@* ) {
+        $q->insert($ani);
+    }
+    my $turn = 0;
+    while ( $moves > 0 ) {
+        my @todo = $q->remove;
+        $turn = $todo[0]->cost;
+        push @todo, $q->remove while !$q->is_empty and $q->peek->cost == $turn;
+        for my $ani ( shuffle @todo ) {
+            $ani->cost( $turn + $costfn->() );
+            $q->insert($ani);
+            $moves--;
+        }
+    }
+}
+
+fun compare( :$iters, :$moves, :$ani_count, :$costfn, :$bufsize ) {
+    cmpthese(
+        $iters,
+        {   cost => sub {
+                run_cost( make_animates( count => $ani_count, cost => 0 ), $moves, $costfn );
+            },
+            cbuf => sub {
+                run_cbuf( $bufsize, make_animates( count => $ani_count, cost => 0 ),
+                    $moves, $costfn );
+
+            },
+            priq => sub {
+                run_priq( make_animates( count => $ani_count, cost => 1 ), $moves, $costfn );
+            },
+        }
+    );
+}
+
+sub rand_re { 1 + int rand 2 }
+sub rand_bi { 1 + int rand 8 }
+
+# see Benchmark perldocs for what the "iters" key means. bufsize is
+# for the circular buffer and must be at least as large as what the
+# costfn returns
+compare(
+    iters     => -10,
+    ani_count => 100,
+    moves     => 1000,
+    costfn    => \&rand_bi,
+    bufsize   => 8
+);

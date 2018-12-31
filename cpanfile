@@ -7,4 +7,6 @@ requires 'Imager';
 requires 'List::Util';
 requires 'List::UtilsBy';
 requires 'Math::Trig';
+requires 'Moo';
+requires 'Queue::Priority';
 requires 'Types::Standard';

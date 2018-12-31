@@ -1,0 +1,6 @@
+requires 'Benchmark';
+requires 'Function::Parameters';
+requires 'List::Util';
+requires 'Moo';
+requires 'Queue::Priority';
+requires 'Types::Standard';
