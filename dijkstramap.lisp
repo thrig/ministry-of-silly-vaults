@@ -1,9 +1,9 @@
 ;;;;; Dijkstra Maps implementation
 ;;;;; http://www.roguebasin.com/index.php?title=The_Incredible_Power_of_Dijkstra_Maps
 
-(defvar *dimap-cost-max*  MOST-POSITIVE-FIXNUM)
-(defvar *dimap-cost-min*  0)
-(defvar *dimap-cost-bad* -1)
+(defvar *dimap-cost-max* MOST-POSITIVE-FIXNUM)
+(defvar *dimap-cost-min* 0)
+(defvar *dimap-cost-bad* MOST-NEGATIVE-FIXNUM)
 
 (declaim (inline dimap-setf-major))
 
@@ -63,7 +63,7 @@
         (unless (<= value *dimap-cost-min*)
           (let* ((coords (dimap-array-coords dimap n))
                  (adj (dimap-adjacent-squares dimap coords))
-                 (costs (mapcan (lambda (x) (and (> x *dimap-cost-bad*)
+                 (costs (mapcan (lambda (x) (and (>= x *dimap-cost-min*)
                                                  (list x)))
                                 (mapcar (lambda (c)
                                           (apply #'aref
@@ -85,7 +85,8 @@
       nil
       (let* ((coords (dimap-array-coords dimap n))
              (adj (dimap-adjacent-squares dimap coords)))
-        (mapcan (lambda (cv) (and (< *dimap-cost-bad* (cdr cv) value)
+        (mapcan (lambda (cv) (and (< (cdr cv) value)
+                                  (>= (cdr cv) *dimap-cost-min*)
                                   (list cv)))
                 (mapcar (lambda (c)
                           (cons c (apply #'aref
