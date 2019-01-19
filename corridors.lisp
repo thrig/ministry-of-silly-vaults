@@ -109,15 +109,15 @@
     (animate (new-agents-at start) #'update-agent)))
 
 ; ensure everything is connected with some Dijkstra magic
-(defparameter *dimap* (make-dimap *board*))
-(dimap-calc *dimap*)
-(let ((goal-major (random-list-item (dimap-unconnected *dimap*))))
-  (dimap-setf-major *dimap* goal-major *dimap-cost-min*)
-  (dimap-calc *dimap*)
-  (do ((target (dimap-array-coords *dimap* goal-major))
-       (unconn (dimap-unconnected *dimap*) (dimap-unconnected *dimap*)))
+(defparameter *dimap* (dimap::make-dimap *board*))
+(dimap::calc *dimap*)
+(let ((goal-major (random-list-item (dimap::unconnected *dimap*))))
+  (dimap::setf-major *dimap* goal-major dimap::*cost-min*)
+  (dimap::calc *dimap*)
+  (do ((target (dimap::array-coords *dimap* goal-major))
+       (unconn (dimap::unconnected *dimap*) (dimap::unconnected *dimap*)))
     ((null unconn))
-    (let ((coord (dimap-array-coords *dimap* (random-list-item unconn))))
+    (let ((coord (dimap::array-coords *dimap* (random-list-item unconn))))
       ; this routine does a random walk so will fit in when the odds of
       ; a nudge happening is high, but probably not so much with more
       ; regular corridors where a draw-a-straight-line algo might be
@@ -126,9 +126,9 @@
                      (apply #'make-point target)
                      #'(lambda (p)
                          (draw-at-point p *floor*)
-                         (dimap-setf-major *dimap*
+                         (dimap::setf-major *dimap*
                                            (point-major p)
-                                           *dimap-cost-max*)))
-      (dimap-calc *dimap*))))
+                                           dimap::*cost-max*)))
+      (dimap::calc *dimap*))))
 
 (no-return (display-board))

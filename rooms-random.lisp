@@ -75,22 +75,22 @@
   (place-room-randomly))
 
 (defparameter *wall-dimap*
-  (make-dimap *board*
+  (dimap::make-dimap *board*
               (lambda (c)
-                (cond ((eq c *wall*) *dimap-cost-max*)
-                      (t *dimap-cost-bad*)))))
-(dimap-calc *wall-dimap*)
+                (cond ((eq c *wall*) dimap::*cost-max*)
+                      (t dimap::*cost-bad*)))))
+(dimap::calc *wall-dimap*)
 
 ;;; a random point in each unconnected area between rooms
 (defparameter *goal-points*
-  (do ((unconn (dimap-unconnected *wall-dimap*)
-               (dimap-unconnected *wall-dimap*))
+  (do ((unconn (dimap::unconnected *wall-dimap*)
+               (dimap::unconnected *wall-dimap*))
        (goals nil))
     ((null unconn) goals)
     (setf (row-major-aref *wall-dimap*
                           (first (push (random-list-item unconn) goals)))
-          *dimap-cost-min*)
-    (dimap-calc *wall-dimap*)))
+          dimap::*cost-min*)
+    (dimap::calc *wall-dimap*)))
 
 ; open up rooms for path finding -- may allow for different cross-room
 ; routes but there will be doors you'll need to cleanup or possibly not
@@ -99,7 +99,7 @@
 ;(dotimes (r +rows+)
 ;  (dotimes (c +cols+)
 ;    (when (eq (get-obj-at r c) *floor*)
-;      (setf (aref *wall-dimap* r c) *dimap-cost-max*))))
+;      (setf (aref *wall-dimap* r c) dimap::*cost-max*))))
 
 ;;; find unqiue wall segments and pick one of those points to be a door
 (defun is-room-wall? (r c)
@@ -110,7 +110,7 @@
     (cond ((eq char *wall*)
            (progn
              (setf (row-major-aref *board* q) *wall-floor*)
-             (setf (row-major-aref *wall-dimap* q) *dimap-cost-max*)))
+             (setf (row-major-aref *wall-dimap* q) dimap::*cost-max*)))
           ((eq char *wall-floor*)
            (return-from draw-path nil))
           ((eq char *floor*)
@@ -122,9 +122,9 @@
             (lambda (p)
               (setf (aref *wall-dimap*
                           (point-row p)
-                          (point-col p)) *dimap-cost-max*)
-              (dimap-calc *wall-dimap*)
-              (let ((path (dimap-path *wall-dimap*
+                          (point-col p)) dimap::*cost-max*)
+              (dimap::calc *wall-dimap*)
+              (let ((path (dimap::path *wall-dimap*
                                       (array-row-major-index *wall-dimap*
                                                              (point-row p)
                                                              (point-col p))
