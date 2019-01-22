@@ -12,10 +12,11 @@
 \usepackage{pxfonts}
 \usepackage{textcomp}
 \usepackage{tabu}
+\usepackage{graphicx}
 
 \title{Luck and Roguelikes}
 \author{Jeremy Mates}
-\date{December 22, 2018}
+\date{January 22, 2019}
 
 \usepackage{hyperref}
 \hypersetup{pdfauthor={Jeremy Mates},pdftitle={Luck and Roguelikes}}
@@ -753,5 +754,72 @@ change the game. For example \texttt{command.c} gives the monsters a
 move after the player can move again; this may lead to a different form
 of a softlock where the player would be pressing space to clear an
 endless stream of messages related to their paralyze status.
+
+\section*{Appendix D}
+
+Doors, in particular the search for hidden doors, are the concern of
+this section. Dungeon Crawl Stone Soup has long since removed secret
+doors, and Brogue as of version 1.7.5 has changed search to lower the
+chance that the player must wander around searching for some hidden room
+that contains the stairs down to the next level. What problem are these
+changes trying to solve? The rogue 3.6.3 door search code is
+simply:\footnote{There are rings of searching; wearing those 
+causes the same search code to run once or twice each turn.}
+
+\begin{verbatim}
+    case SECRETDOOR:
+        if (rnd(100) < 20) {
+            mvaddch(y, x, DOOR);
+            ...
+\end{verbatim}
+
+So, a 20\% chance to find a hidden door on each search attempt.
+(Brogue extends the range of the search; rogue only searches directly
+adjacent squares.) A monte carlo simulation will illustrate the
+problem with the above code;
+
+\begin{verbatim}
+int search(void)
+{
+    int turns = 1;
+    while (1) {
+        if (rnd(100) < 20) break;
+        turns++;
+    }
+    return turns;
+}
+\end{verbatim}
+
+or in other words calculate how many turns it takes a door to be found.
+This \texttt{search} function will need be run with many different seeds
+for many different trials to get an idea of how (the again very bad)
+\texttt{rnd} function behaves.
+
+\includegraphics{door-find-frequency.pdf}%
+
+The good news is that most of the time the player will find a door in
+under 10 turns (about a 90\% chance). The bad news is if the RNG is in a
+bad mood it may take significantly longer to find the door. If instead
+the odds increase on repeated searches (that is, if the player searches
+without moving\textendash moving resets the repeated search counter) via
+something like the following:
+
+\begin{verbatim}
+int new_search(void)
+{
+    int turns = 0;
+    while (1) {
+        if (rnd(100) < 10 + 4 * turns++)
+            break;
+    }
+    return turns;
+}
+\end{verbatim}
+
+The initial odds are lower, though a simulation of this new
+function shows that the long tail has been reduced to at most
+\symbol{126}16 turns:
+
+\includegraphics{new-door-find-frequency.pdf}%
 
 \end{document}
