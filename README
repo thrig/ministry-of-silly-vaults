@@ -42,6 +42,11 @@ another option
       makes some rectangular rooms, packs them together, and connects
       the whole lot with some doors. code may require tweaking
 
+    cell-intercept.lisp
+      combination of x,y floating point and row,col integer location for
+      "animates" that might have a velocity and direction they are
+      heading in
+
     circulator
       generates "circular" vaults of a given radius, to the extent not-
       square terminal fonts support that
@@ -162,4 +167,3 @@ see also https://github.com/thrig/Game-DijkstraMap
 somos comparables al hechicero que teje un laberinto y que se ve
 forzado a errar en él hasta el fin de sus días
   -- Borges, Deutsches Requiem
-
