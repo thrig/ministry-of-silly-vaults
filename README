@@ -64,6 +64,10 @@ another option
     linewalker.lisp
       walkers converge on a target point, carving out lines
 
+    minterm.lisp
+      minimal terminal raw mode library, see minterm-eg.lisp for example
+      usage (explorer.lisp instead uses cl-charms to wrap curses)
+
     noise
       illustration of "white" noise versus "brown" noise
 
