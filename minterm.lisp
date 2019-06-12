@@ -2,9 +2,8 @@
 ;;;;;
 ;;;;;   make -C lib `uname`
 ;;;;;
-;;;;; only SBCL is supported at the moment; the SB-SYS stuff will need
-;;;;; to use features as appropriate. also Makefile entries will need to
-;;;;; be added for systems beyond Darwin and OpenBSD, see the lib
+;;;;; only SBCL has been tested, and also Makefile entries will need to
+;;;;; be added for systems beyond Darwin and OpenBSD. see the lib
 ;;;;; directory for details
 ;;;;;
 ;;;;; minterm-eg.lisp uses this library for a minimal usage example
@@ -49,12 +48,14 @@
   (format t "~C[~d;~dH" #\Esc row col))
 
 ; PORTABILITY - implementations love to handle control+c themselves
-; which may be bad in the middle of a game or something
+; which may be bad in the middle of a game or something so that may need
+; to be caught as appropriate
 (defun getch ()
   (let ((keycode))
     (handler-case
       (restart-case (setf keycode (readkey))
         (inject-control-c () (setf keycode 3)))
+      #+SBCL
       (SB-SYS:INTERACTIVE-INTERRUPT () (setf keycode 3)))
     keycode))
 
