@@ -4,7 +4,7 @@ CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all
 .SUFFIXES: .lisp .fasl .tex .pdf
 
 .lisp.fasl:
-	sbcl --noinform --non-interactive --eval '(compile-file (second *posix-argv*))' ${.IMPSRC}
+	sbcl --noinform --non-interactive --eval '(let ((file (second *posix-argv*))) (if file (compile-file (second *posix-argv*)) (error "use BSD make")))' ${.IMPSRC}
 
 # KLUGE requires multiple runs to fill in the references
 .tex.pdf:

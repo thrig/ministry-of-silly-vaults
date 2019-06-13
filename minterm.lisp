@@ -65,9 +65,9 @@
     (with-foreign-slots ((ws_col ws_row ws_xpixel ws_ypixel) ws winsize)
       (list ws_col ws_row ws_xpixel ws_ypixel))))
 
-(defun termsizep (&optional (want-cols 80) (want-rows 24))
+(defun termsizep (min-cols min-rows)
   (destructuring-bind (cols rows x y) (termsize)
-    (or (< cols want-cols) (< rows want-rows))))
+    (and (>= cols min-cols) (>= rows min-rows))))
 
 (defmacro with-rawterm (&body body)
   `(unwind-protect
