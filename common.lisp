@@ -9,6 +9,8 @@
 (defvar +rows+ 10)
 (defvar +cols+ 20)
 
+(defconstant +tau+ (* 2 pi))
+
 (declaim (inline copy-point make-point point-row point-col point-major
                  set-point set-point-row set-point-col draw-at draw-at-point
                  random-point get-obj-at random-between p-inbounds?))

@@ -8,7 +8,7 @@
 
 (defparameter *door* #\+)
 (defparameter *edge* #\#)
-(defparameter *fill* #\SPACE)
+(defparameter *fill* #\Space)
 
 (defparameter *carve-if-surrounded-by* 8)
 
@@ -21,7 +21,7 @@
 (load "common")
 
 (proclaim '(optimize speed))
-(progn (setq *random-state* (make-random-state t)) t)
+(randomize)
 
 (defparameter *board* (make-board +rows+ +cols+ *fill*))
 

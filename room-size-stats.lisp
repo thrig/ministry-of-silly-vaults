@@ -12,7 +12,7 @@
 (load "common")
 
 (proclaim '(optimize speed))
-(progn (setq *random-state* (make-random-state t)) t)
+(randomize)
 
 (defun random-room-row (r)
   (+ r (decay :odds 0.11

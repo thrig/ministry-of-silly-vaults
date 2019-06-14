@@ -12,7 +12,7 @@
 (defparameter +cols+ 0)
 (defparameter +player+ #\@)
 
-;;; http://quicklisp.org
+#-quicklisp
 (let ((quicklisp-init
        (merge-pathnames "quicklisp/setup.lisp"
                         (user-homedir-pathname))))

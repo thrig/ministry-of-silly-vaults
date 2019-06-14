@@ -13,7 +13,7 @@
 (load "common")
 
 (proclaim '(optimize speed))
-(progn (setq *random-state* (make-random-state t)) t)
+(randomize)
 
 (defparameter *board* (make-board +rows+ +cols+ *floor*))
 

@@ -124,6 +124,9 @@
     (if (= 0 len) nil
       (nth (random len) alist))))
 
+(defmacro randomize ()
+  `(block nil (setq *random-state* (make-random-state t)) (return)))
+
 (defun range (min max &optional (step 1))
   (declare (fixnum min max step))
   (if (zerop step) (error "step must not be zero"))
