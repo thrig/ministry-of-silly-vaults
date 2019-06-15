@@ -4,8 +4,9 @@
 ;;; randomly on the perimeter of that circle. here this is instead for
 ;;; drawing things onto a level map
 ;;;
-;;; things to TWEAK include the walker's v dist r theta values, along
-;;; with the update-target code (how much to move the target by)
+;;; things to TWEAK (search for this) include the walker's v dist r
+;;; jitter values, possibly also the update-target code that updates the
+;;; jitter value
 ;;;
 ;;; (this code is based on a description of an algorithm that reportedly
 ;;; originates from Craig Reynolds of "boids" fame)
@@ -24,6 +25,8 @@
 
 (proclaim '(optimize speed))
 (randomize)
+
+(defparameter *board* (make-board +rows+ +cols+ *bg*))
 
 (defstruct
     (animate
@@ -48,12 +51,10 @@
   (jitter 0.0 :type float)              ; how much to change theta by
   (theta 0.0 :type float))              ; angle to target on circle
 
-(defparameter *board* (make-board +rows+ +cols+ *bg*))
+; TWEAK - v, dist, r, jitter can all be fiddled with for various results
 (defparameter *walker*
-  (make-animate :dir (deg2rad (random 360))
-                :v 1.0 :x 40.0 :y 10.0 :dist 5.0 :r 3.0
-                :jitter (deg2rad 90)
-                :theta (deg2rad (random 360))))
+  (make-animate :dir (random +tau+) :x 40.0 :y 10.0 :theta (random +tau+)
+                :v 1.0 :dist 5.0 :r 3.0 :jitter (deg2rad 60)))
 
 ; ROUND is bad here as it might round up to the array limit, TRUNCATE
 ; always keeps it below that
@@ -92,14 +93,14 @@
              (/ (- ty (animate-y *walker*))
                 (- tx (animate-x *walker*)))))))
 
-;;; NOTE this is always a positive move, could also make it move
-;;; back-and-forth by applying a random sign or minus half the angle
+;;; TWEAK this could instead be always positive, etc
 (defun update-target ()
   (setf (animate-theta *walker*)
-          (+ (animate-theta *walker*)
-             (random (animate-jitter *walker*)))))
+    (+ (animate-theta *walker*)
+       (* (if (coinflip) 1 -1)
+          (random (animate-jitter *walker*))))))
 
-(dotimes (n +moves+)
+(repeat +moves+
   (draw-at (walker-row) (walker-col) *fg*)
   (track-target)
   (advance-walker)
