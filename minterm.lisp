@@ -8,16 +8,15 @@
 ;;;;;
 ;;;;; minterm-eg.lisp uses this library for a minimal usage example
 
-#-quicklisp
-(let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
-                                       (user-homedir-pathname))))
-  (when (probe-file quicklisp-init) (load quicklisp-init)))
-
+;;; setup quicklisp or install CFFI and dependencies manually
+(require :asdf)
 (asdf:load-system :cffi)
 (defpackage :minterm (:use :common-lisp :cffi))
 (in-package :minterm)
 
 ;;; KLUGE or instead install the C library to a standard lib directory
+;;; (another idea might be to drop the library and just make the C calls
+;;; directly from LISP?)
 (pushnew #P"./lib/" *foreign-library-directories* :test #'equal)
 
 (define-foreign-library libminterm (t (:default "libminterm")))

@@ -3,21 +3,25 @@
 ;;;;;
 ;;;;;   sbcl --script explorer.lisp board
 
-(defparameter *debug-log*
-  (open "debug" :direction :output :if-exists :append
-        :if-does-not-exist :create))
+#-quicklisp
+(let ((quicklisp-init
+       (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname))))
+  (when (probe-file quicklisp-init) (load quicklisp-init)))
+(ql:quickload 'cl-charms :silent t)
+
+; traditional keybindings from rogue
+(defparameter *default-keys*
+  '((#\h :move-ww) (#\j :move-ss) (#\k :move-nn) (#\l :move-ee)
+    (#\y :move-nw) (#\u :move-ne) (#\b :move-sw) (#\n :move-se)
+    (#\q :quit-game)))
+
+(define-condition game-over (error)
+  ((reason :initarg :reason :reader game-over-reason)))
 
 (defparameter *board* nil)
 (defparameter +rows+ 0)
 (defparameter +cols+ 0)
 (defparameter +player+ #\@)
-
-#-quicklisp
-(let ((quicklisp-init
-       (merge-pathnames "quicklisp/setup.lisp"
-                        (user-homedir-pathname))))
-  (when (probe-file quicklisp-init) (load quicklisp-init)))
-(ql:quickload 'cl-charms :silent t)
 
 (defstruct point (col 0 :type fixnum) (row 0 :type fixnum))
 (defmacro update-point (p col row)
@@ -34,18 +38,15 @@
 
 (defparameter *keylist* nil)
 
-(defmacro key-bind (key &body body)
-  `(push '(,key ,@body) *keylist*))
+(defmacro event-bind (key &body body) `(push '(,key ,@body) *keylist*))
 
-(defun key-cond (key)
-  (mapcar
-   #'(lambda (kbod)
-       (let ((bind (first kbod)) (body (rest kbod)))
-         `((eq ,key ,bind) ,@body)))
-   (nreverse *keylist*)))
+(defun event-cond (key)
+  (mapcar #'(lambda (kbod)
+              (let ((bind (first kbod)) (body (rest kbod)))
+                `((eq ,key ,bind) ,@body)))
+          *keylist*))
 
-(defmacro action-for (keyact)
-  `(cond ,@(key-cond keyact)))
+(defmacro action-for (keyact) `(cond ,@(event-cond keyact)))
 
 (defmacro move-player (&key (row 0) (col 0))
   (declare (fixnum row col))
@@ -56,15 +57,21 @@
          (setf *where* goal))
        nil)))
 
-(key-bind #\h (move-player :row -1 :col  0))
-(key-bind #\j (move-player :row  0 :col  1))
-(key-bind #\k (move-player :row  0 :col -1))
-(key-bind #\l (move-player :row  1 :col  0))
-(key-bind #\y (move-player :row -1 :col -1))
-(key-bind #\u (move-player :row  1 :col -1))
-(key-bind #\b (move-player :row -1 :col  1))
-(key-bind #\n (move-player :row  1 :col  1))
-(key-bind #\q (exit))
+(defparameter *key-symbol-map* (make-hash-table :test 'equal))
+(loop for kp in *default-keys*
+      do (setf (gethash (first kp) *key-symbol-map*) (second kp)))
+
+(defmacro symbol-for (key) `(gethash ,key *key-symbol-map*))
+
+(event-bind :move-ww (move-player :row -1 :col  0))
+(event-bind :move-ss (move-player :row  0 :col  1))
+(event-bind :move-nn (move-player :row  0 :col -1))
+(event-bind :move-ee (move-player :row  1 :col  0))
+(event-bind :move-nw (move-player :row -1 :col -1))
+(event-bind :move-ne (move-player :row  1 :col -1))
+(event-bind :move-sw (move-player :row -1 :col  1))
+(event-bind :move-se (move-player :row  1 :col  1))
+(event-bind :quit-game (error 'game-over :reason :quit-game))
 
 (defun load-board (in)
   (let ((board nil) (rows 1) (cols 0))
@@ -122,11 +129,16 @@
       (draw-player game-window)
       (do () (nil)
         (let ((key (charms:get-char charms:*standard-window*)))
-          (let ((ret (action-for key)))
+          (let ((ret (action-for (symbol-for key))))
             (unless (null ret)
               (let ((col (point-col (car ret))) (row (point-row (car ret))))
                 (charms:write-char-at-point game-window
                                             (aref *board* row col) col row)
                 (draw-player game-window)))))))))
 
-(explorer)
+(handler-case
+  (explorer)
+  (game-over (msg)
+    (cond ((eq (game-over-reason msg) :quit-game)
+           (format t "Be seeing you..."))
+          (t (format t "O, I am slain!")))))
