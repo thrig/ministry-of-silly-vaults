@@ -34,11 +34,9 @@
         (decf moves)))))
 
 (defun min-ani-cost (animates)
-  (let ((min-cost MOST-POSITIVE-FIXNUM))
-    (dolist (ani animates)
-      (let ((cost (animate-cost ani)))
-        (when (< code min-cost) (setf min-cost cost))))
-    min-cost))
+  (loop for ani in animates
+        minimize (animate-cost ani) into min
+        finally (return min)))
 
 (defun run-cost (count moves costfn)
   (let ((animates nil))
