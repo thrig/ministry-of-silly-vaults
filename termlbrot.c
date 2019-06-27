@@ -25,8 +25,8 @@ int main(void)
     // TWEAK how big the terminal or output canvas is (and thus how much
     // resolution the fractal is displayed at)
     struct winsize w;
-    unsigned int rows = 23;
-    unsigned int cols = 80;
+    unsigned int rows = 128;
+    unsigned int cols = 128;
 
     // TWEAK area to iterate over
     long double run_real[2] = { -0.9, -0.7 };
@@ -36,8 +36,8 @@ int main(void)
 
     // TWEAK autoscale depending on how tight the graph is?
     // lowering them will a) save CPU and b) increase open space
-    const unsigned int iterations = 100;
-    const long double threshold = 1.5;
+    const unsigned int iterations = 75 + arc4random() % 100;
+    const long double threshold = 1 + arc4random() / (long double)UINT32_MAX;
 
     long double range_real, range_imag;
     long double cur_row, cur_col;
@@ -49,13 +49,14 @@ int main(void)
     unsigned int min_stab = UINT_MAX;
     unsigned int max_stab = 0;
 
+/*
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
         warn("could not obtain terminal size from STDOUT");
     } else {
         cols = w.ws_col;
         rows = w.ws_row - 2;
     }
-
+*/
     field = make_matrixui(rows, cols);
 
     randval = 0.0 - arc4random() / (long double)UINT32_MAX;
@@ -72,7 +73,8 @@ int main(void)
     run_real[1] = run_real[0] + randval / 4;
     printf(" R1=%Lf\n", run_real[1]);
 
-    run_imag[1] = run_imag[0] + rows * (run_real[1]-run_real[0]) / (long double) cols * 3;
+    // TWEAK aspect ratio of the view
+    run_imag[1] = run_imag[0] + rows * (run_real[1]-run_real[0]) / (long double) cols; // * 3;
 
     range_real = run_real[1] - run_real[0];
     range_imag = run_imag[1] - run_imag[0];
