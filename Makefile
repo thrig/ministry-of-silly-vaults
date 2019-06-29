@@ -36,6 +36,7 @@ room-size-stats.lisp: util.fasl common.fasl
 rooms-random.lisp: util.fasl common.fasl
 
 termlbrot: termlbrot.c
+	$(CC) $(CFLAGS) -lm termlbrot.c -o termlbrot
 
 util.fasl: util.lisp
 

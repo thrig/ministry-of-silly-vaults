@@ -24,11 +24,11 @@ int main(void)
 {
     // TWEAK how big the terminal or output canvas is (and thus how much
     // resolution the fractal is displayed at)
-    struct winsize w;
-    unsigned int rows = 128;
-    unsigned int cols = 128;
+    //struct winsize w;
+    unsigned int rows = 144;
+    unsigned int cols = 144;
 
-    // TWEAK area to iterate over
+    // TWEAK area to iterate over (TWEAK or randomized, below)
     long double run_real[2] = { -0.9, -0.7 };
     long double run_imag[2] = { -1.0, 0.5 };
 
@@ -41,7 +41,7 @@ int main(void)
 
     long double range_real, range_imag;
     long double cur_row, cur_col;
-    long double complex coord, zeta;
+    long double _Complex coord, zeta;
 
     unsigned int **field;
     long index;
@@ -60,18 +60,18 @@ int main(void)
     field = make_matrixui(rows, cols);
 
     randval = 0.0 - arc4random() / (long double)UINT32_MAX;
-    printf("I0=%Lf", randval);
+    fprintf(stderr, "I0=%Lf", randval);
     run_imag[0] = randval;
 
     randval = 0.0 - arc4random() / (long double)UINT32_MAX;
-    printf(" R0=%Lf", randval);
+    fprintf(stderr, " R0=%Lf", randval);
     run_real[0] = randval;
 
     randval = arc4random() / (long double)UINT32_MAX;
 
     // TWEAK divide factor is how much to zoom in by
-    run_real[1] = run_real[0] + randval / 4;
-    printf(" R1=%Lf\n", run_real[1]);
+    run_real[1] = run_real[0] + randval / 32;
+    fprintf(stderr, " R1=%Lf\n", run_real[1]);
 
     // TWEAK aspect ratio of the view
     run_imag[1] = run_imag[0] + rows * (run_real[1]-run_real[0]) / (long double) cols; // * 3;
@@ -83,6 +83,7 @@ int main(void)
         cur_row = run_real[0] + range_real / (long double) rows *r;
         for (int c = 0; c < cols; c++) {
             cur_col = run_imag[0] + range_imag / (long double) cols *c;
+            // TODO fix "imaginary constants are a GNU extension"
             zeta = 0.0 + 0.0 * I;
             // TWEAK rotate by flipping these
             coord = cur_col + cur_row * I;
@@ -136,8 +137,7 @@ unsigned int **make_matrixui(unsigned int rows, unsigned int cols)
     if ((matrix[0] =
          (unsigned int *) malloc(rows * cols * sizeof(unsigned int))) == NULL)
         err(1, "could not malloc matrix");
-    for (i = 1; i < rows; i++) {
+    for (i = 1; i < rows; i++)
         matrix[i] = matrix[0] + i * cols;
-    }
     return matrix;
 }
