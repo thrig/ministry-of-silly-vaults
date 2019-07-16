@@ -16,7 +16,7 @@
 
 \title{Luck and Roguelikes}
 \author{Jeremy Mates}
-\date{January 22, 2019}
+\date{July 16, 2019}
 
 \usepackage{hyperref}
 \hypersetup{pdfauthor={Jeremy Mates},pdftitle={Luck and Roguelikes}}
@@ -821,5 +821,117 @@ function shows that the long tail has been reduced to at most
 \symbol{126}16 turns:
 
 \includegraphics{new-door-find-frequency.pdf}%
+
+\section*{Appendix Z}
+
+ZAngband 2.6.2 presents portability problems, in particular 100\% CPU
+use during character generation. This turns out to be a RNG problem.
+Investigation of the source reveals that the RNG is
+seeded\footnote{\url{https://flak.tedunangst.com/post/random-in-the-wild}}
+poorly, much like the choice of a cup in an Indiana Jones movie.
+
+\begin{verbatim}
+% grep 'seed =' src/dungeon.c 
+                seed = (time(NULL));
+                seed = ((seed >> 3) * (getpid() * 2));
+\end{verbatim}
+
+However this is not cause of the CPU bug, rather a weakness that may be
+exploited by a crafty player to guess or know what the RNG will roll,
+one that may be fixed via \texttt{arc4random(3)} or by reading 32 bits
+from \texttt{/dev/urandom}. \\
+
+The CPU usage can be debugged up a macro, or rather a series of macros
+in \texttt{src/z-rand.h} that have the bonus of not allowing my debugger
+step through the critical \texttt{Rand\_div} function.
+
+\begin{verbatim}
+#define randint1(M) \
+        (randint0(M) + 1)
+#define randint0(M) \
+        ((s32b)Rand_div(M))
+\end{verbatim}
+
+\texttt{Rand\_div} is complicated; it contains not one but two different
+RNG. Replacing this entire function with an equivalent
+\texttt{arc4random\_uniform} call leads to map generation failures due to
+\texttt{arc4random\_uniform} being too random compared to what the
+original function produces, in particular to the outputs of the "simple
+RNG". So no simple fix here; the code depends on particular values from
+the particular RNG used. The CPU bug, however, is in the "complex RNG"
+portion of the code; somewhere in \texttt{src/birth.c} character
+attributes are rolled up in the Dungeons \& Dragons tradition:
+
+\begin{verbatim}
+        while (TRUE)
+        {
+                /* Roll some dice */
+                for (j = i = 0; i < 18; i++)
+                {
+                        /* Roll the dice */
+                        dice[i] = randint1(3 + i % 3);
+\end{verbatim}
+
+with lots of dice rolls to obtain better stats; in a real-life game a
+nice Dungeon Master would let a player re-roll a bad attribute roll;
+here that instead is brute forced. (If you're going to allow the player
+to obtain good stats, there are more CPU efficient ways to do that.
+Anyways!) With lots of rolls, much time is spent in \texttt{Rand\_div} by
+way of the \texttt{randint1} macro, which for debugging can be
+temporarily replaced by a direct function call:
+
+\begin{verbatim}
+                        dice[i] = 1 + Rand_div(3 + i % 3);
+\end{verbatim}
+
+This in a debugger shows much spinning around in the loop:
+
+\begin{verbatim}
+                while (1) {
+                        int j;
+                        j = Rand_place + 1;
+                        if (j == RAND_DEG) j = 0;
+                        r = (Rand_state[j] += Rand_state[Rand_place]);
+                        r = (r >> 4) / n;
+                        Rand_place = j;
+                        if (r < m) break;
+                }
+\end{verbatim}
+
+Most values for \texttt{r} are larger than \texttt{m} so the loop almost
+never exits, unless one is extremely patient or has an extremely fast
+CPU. \texttt{m} is the input to \texttt{Rand\_div}, here values in the
+range of three to five, inclusive. \texttt{r} meanwhile is \texttt{u32b}
+which appears to be a unsigned 32-bit value, or what \texttt{stdint.h}
+(now, but not when ZAngband was being developed) provides as
+\texttt{uint32\_t}. Over in \texttt{src/h-type.h} we find:
+
+\begin{verbatim}
+/* Signed/Unsigned 32 bit value */
+#ifdef L64      /* 64 bit longs */
+typedef signed int s32b;
+typedef unsigned int u32b;
+#else
+typedef signed long s32b;
+typedef unsigned long u32b;
+#endif
+\end{verbatim}
+
+Where \texttt{L64} is only set on DEC Alpha OSF systems. So on my 64-bit
+system (OpenBSD 6.5, amd64) the \texttt{s32b} and \texttt{u32b} are
+actually eight instead of four byte containers.
+
+\begin{verbatim}
+% cfu 'printf("%lu\n", sizeof(unsigned long))'
+8
+% cfu 'printf("%lu\n", sizeof(uint32_t))'     
+4
+\end{verbatim}
+
+This well explains why the RNG has problems; the \texttt{Rand\_state} is
+permuting 64-bit values instead of the expected 32-bit values\ldots
+someone could work out exactly why this is bad for the algorithm
+involved, but the fix here is to make \texttt{s32b} and \texttt{u32b}
+use proper 32-bit containers on all 64-bit systems.
 
 \end{document}
