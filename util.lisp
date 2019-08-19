@@ -123,7 +123,7 @@
        (if (or (not (integerp ,count)) (< ,count 1))
          (error "repeat count must be positive integer"))
        (do ((,repnum ,count (1- ,repnum)))
-         ((< ,repnum 1) (return))
+         ((< ,repnum 1) (values))
          ,@body))))
 
 (defun reverse-signum (n)
