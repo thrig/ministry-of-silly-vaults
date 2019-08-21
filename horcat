@@ -21,6 +21,7 @@ GetOptions( 'fill=s' => \my @fill ) or exit 1;
 die "Usage: horcat file1 file2 [..]\n" unless @ARGV > 1;
 
 $fill[0] = '?' unless @fill;
+$fill[1] = $fill[0] if @fill == 1;
 
 my @pats;
 for my $f (@ARGV) {
