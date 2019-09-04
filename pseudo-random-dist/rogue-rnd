@@ -1,0 +1,10 @@
+#!/usr/bin/env perl
+use 5.10.0;
+use warnings;
+use lib qw(.);
+use RogueRnd;
+my $RN;
+RogueRnd::make_rng(\$RN);
+$RN = shift // 0;
+my $count = shift // 10;
+say $RN for 1 .. $count;
