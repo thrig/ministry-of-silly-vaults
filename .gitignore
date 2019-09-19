@@ -7,5 +7,6 @@
 *.o
 *.out
 *.tex.bak
+cone-geometry
 debug
 termlbrot

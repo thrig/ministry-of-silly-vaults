@@ -17,6 +17,10 @@ caves.lisp: util.fasl common.fasl
 
 common.fasl: common.lisp
 
+# NOTE some OS may need `pkg-config --libs --cflags ncurses`
+cone-geometry: cone-geometry.c
+	$(CC) $(CFLAGS) -lm -lncurses cone-geometry.c -o cone-geometry
+
 corridors.lisp: util.fasl common.fasl dijkstramap.fasl
 
 dijkstramap.fasl: dijkstramap.lisp
