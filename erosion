@@ -1,0 +1,86 @@
+#!/usr/bin/env perl
+#
+# erosion - evolve a map using grammar-like rules where .#. can turn
+# into Y:Y and then those Y randomly turn into something else, etc (from
+# a discussion on ##roguelikedev)
+#
+#   # - wall : - half-wall , - rubble . - ground
+#
+# Usage:
+#   ./erosion board
+
+use 5.24.0;
+use warnings;
+use Game::TextPatterns;
+use Game::TextPatterns::Util qw(adj_4way adj_8way);
+use Math::Random::Discrete;
+
+my $fh;
+if (@ARGV and $ARGV[0] ne '-') {
+    open $fh, '<', $ARGV[0] or die "could not open $ARGV[0]: $!\n";
+} else {
+    $fh = \*STDIN;
+}
+
+my $world = Game::TextPatterns->new(
+    pattern => do { local $/; readline $fh }
+);
+
+# TWEAK 4-way is faster but lines up the rubble too much
+my $adjfn = \&adj_8way;
+# odds 'Y' get converted into...
+my $rubbleize =
+  Math::Random::Discrete->new([ 1, 10, 500, 250 ], [ '#', ':', ',', '.' ]);
+
+use constant { COL => 0, ROW => 1, POINT => 0, TYPE => 1 };
+
+my ($cols, $rows) = map { $_ - 1 } $world->dimensions;
+my $pat = $world->pattern;
+
+# TWEAK how many passes to make NOTE if this is increased the CPU use
+# goes up and the odds of various things that follow also go up
+for (1 .. 3) {
+    my @rubble;
+    $world->randomly(
+        qr/#/, 0.04,    # TWEAK odds a wall gets turned to rubble
+        sub {
+            my ($pat, $p, $cols, $rows) = @_;
+            # TODO may want a restriction that rubblization can only
+            # happen if there is an adjacent open square
+            substr($pat->[ $p->[ROW] ], $p->[COL], 1, ':');
+            push @rubble, [ $p, ':' ];
+            for my $x ($adjfn->($p, $cols, $rows)) {
+                # TWEAK odds rubble gets left near the (former) wall
+                # (only if there is an empty square to fill)
+                if (substr($pat->[ $x->[ROW] ], $x->[COL], 1) eq '.' and rand() < 0.3) {
+                    push @rubble, [ $x, 'Y' ];
+                }
+            }
+        }
+    );
+
+    while (my $rub = shift @rubble) {
+        my $p      = $rub->[POINT];
+        my $do_adj = 0;
+        if ($rub->[TYPE] eq ':') {
+            # TWEAK maybe reduce half-walls more
+            if (rand() < 0.3) {
+                substr($pat->[ $p->[ROW] ], $p->[COL], 1, rand() < 0.75 ? ',' : '.');
+                $do_adj = 1 if rand() < 0.5;
+            }
+        } elsif ($rub->[TYPE] eq 'Y') {
+            substr($pat->[ $p->[ROW] ], $p->[COL], 1, $rubbleize->rand);
+            $do_adj = 1 if rand() < 0.95;
+        }
+        if ($do_adj) {
+            for my $x ($adjfn->($p, $cols, $rows)) {
+                # TWEAK odds of additional rubble spread (probably
+                # should be kept low)
+                if (substr($pat->[ $x->[ROW] ], $x->[COL], 1) eq '.' and rand() < 0.09) {
+                    push @rubble, [ $x, 'Y' ];
+                }
+            }
+        }
+    }
+}
+print $world->string;

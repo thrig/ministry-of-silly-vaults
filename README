@@ -53,8 +53,17 @@ another option
 
         ./circulator 7
 
+    cone-geometry.c
+      animates a cone (okay, arc) around a point
+
     crossing
       example use of the Game::DijkstraMap Perl module
+
+    erosion
+      corrupts walls using particular methods
+
+        cat board
+        ./erosion board
 
     explorer.lisp
       level map tester, lets you move around a provided board

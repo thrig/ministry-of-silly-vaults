@@ -31,7 +31,6 @@ void line(int x0, int y0, int x1, int y1, line_callback cb, void *ptr);
 
 int main(int argc, char *argv[])
 {
-    sleep(1);
     setlocale(LC_ALL, "");
     initscr();
     curs_set(FALSE);
@@ -40,7 +39,7 @@ int main(int argc, char *argv[])
     nonl();
 
     delay.tv_nsec = 10000000;
-    for(int angle = 0; angle < 720; angle += 5) {
+    for(int angle = 0; angle < 365; angle += 5) {
         // causes flicker, which may or may not be desired
         //clearok(stdscr, TRUE);
         cone(40, 12, deg2rad(angle), deg2rad(20), 12, ACS_DIAMOND);
@@ -49,7 +48,7 @@ int main(int argc, char *argv[])
         cone(40, 12, deg2rad(angle), deg2rad(20), 12, ' ');
     }
 
-    cone(40, 12, deg2rad(135), deg2rad(20), 12, ACS_DIAMOND);
+    //cone(40, 12, deg2rad(135), deg2rad(20), 12, ACS_DIAMOND);
     //getch();
     curs_set(TRUE);
     endwin();
