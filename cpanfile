@@ -1,4 +1,5 @@
 requires 'Algorithm::BinPack::2D';
+requires 'Class::MOP';
 requires 'File::Slurper';
 requires 'Function::Parameters';
 requires 'Game::DijkstraMap', '>= 1.01';
@@ -10,5 +11,7 @@ requires 'List::Util';
 requires 'List::UtilsBy';
 requires 'Math::Random::Discrete';
 requires 'Math::Trig';
+requires 'Moo';
 requires 'Queue::Priority';
 requires 'Types::Standard';
+requires 'Variable::Magic';
