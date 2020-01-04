@@ -34,12 +34,12 @@
 ; Ibid., p.267 a simplified normal distribution generator with a few
 ; dice rolls because apparently games don't have the CPU budget for
 ; perfect stats
-(defun skew-dist (min max &key (drop-lo 0) (drop-hi 0) (pinch 0))
-  (declare (positive-integer drop-lo drop-hi pinch))
+(defun skew-dist (min max &key (dice 3) (drop-lo 0) (drop-hi 0) (pinch 0))
+  (declare (positive-integer dice drop-lo drop-hi pinch))
   (when (< max min) (error "max ~a less than min ~a" max min))
-  (let* ((times (+ 3 pinch))
+  (let* ((times (+ dice pinch))
          (range (- max min))
-         (sides (truncate (/ (+ range times) times)))
+         (sides (floor (+ range times) times))
          (odd (- range (* times (1- sides))))
          (roll
           (reduce #'+

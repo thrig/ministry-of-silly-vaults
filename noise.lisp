@@ -36,8 +36,7 @@
 
 (defun nearby (x max range)
   (setf range (if (oddp range) range (1+ range)))
-  (do ((new nil (if-legal (+ x (- (random range)
-                                  (truncate (/ range 2)))) max)))
+  (do ((new nil (if-legal (+ x (- (random range) (floor range 2))) max)))
     ((numberp new) new)))
 
 ;;; with "brown noise" the placement of an object is done near the
