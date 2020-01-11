@@ -1,0 +1,26 @@
+#!/usr/bin/env perl
+#
+# displays the combined costs for the given level map files (where 'x'
+# is a goal, '#' is a wall, and anything else considered an open square)
+#
+#   make depend
+#   ./dimap-multi-costs [-w map2weight [..]] map1 map2 [..]
+
+use 5.24.0;
+use warnings;
+use File::Slurper qw(read_text);
+use Game::DijkstraMap;
+use Getopt::Long qw(GetOptions);
+
+GetOptions('weights|w=f' => \my @weights) or exit 64;
+
+my @maps = map { Game::DijkstraMap->new(str2map => read_text $_ ) } @ARGV;
+for my $m (@maps) {
+    print $m->to_tsv;
+    say "--";
+}
+my $x = shift @maps;
+die "weights must be congruent with 1- map count\n"
+  if @weights and @weights != @maps;
+print $x->to_tsv(
+    $x->dimap_with({ objs => \@maps, @weights ? (weights => \@weights) : () }));

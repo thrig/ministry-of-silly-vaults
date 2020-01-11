@@ -15,7 +15,7 @@
 
 \title{Dijkstra Maps in Roguelikes}
 \author{Jeremy Mates}
-\date{September 23, 2018}
+\date{January 11, 2020}
 
 \usepackage{hyperref}
 \hypersetup{pdfauthor={Jeremy Mates},pdftitle={Dijkstra Maps in Roguelikes}}
@@ -80,7 +80,7 @@ higher value.
 
 Many maps will be more complicated than the above and will contain
 obstacles, typically walls, or lava, or there may be monsters that can
-pass through walls but not across holy water\textendash spectres
+pass through walls but not across holy water\textendash specters
 perhaps\textendash or anything else you can imagine. Let us for now
 only consider physical walls, represented using \texttt{\symbol{35}} as
 is typical for roguelikes.
@@ -172,10 +172,145 @@ This map however does not consider other crabs\textendash can two occupy
 the same square, or will one need to find a longer route to a free water
 cell?\textendash nor the influence of the player; a monster may
 realistically have multiple desires: get to water while also avoiding
-the player. This requires a combination of Dijkstra Maps, the inverse
-distance to the player combined with the above water map. (This is an
-area I and my code need to level up a bit more in, so I will say no more
-about it.)
+the player. This can be solved in various ways; moves could be ranked by
+utility value--corners might be scored poorly for a fleeing monster (see
+e.g. ``Behavioral Mathematics for Game AI''\cite{gameai} for ideas)--or
+by using a combination of maps.
+
+\section*{Combining Dijkstra Maps}
+
+Multiple maps may be added together and the combined score used to move
+an entity towards or away from goals. Suppose that some
+Knight\cite{donq} seeks to make justice upon a fleeing goblin. The
+monster, however, has been cornered in a room so simple ``move to the
+highest cost cell'' code will leave the monster trapped in a corner.
+There should be, in this condition, some means for the monster to slip
+past the player.
+
+\begin{verbatim}
+######
+#....#
+#.g.@.
+#....#
+######
+\end{verbatim}
+
+A monster whose state is fleeing needs to be anywhere else; this can be
+represented by a map with the monster as the goal, higher values thus
+being more desirable. This map can be combined with the map centered on
+the player--and also any of their allies, if necessary. Since the
+player map will have undesirably low values close to the player, the
+resulting map should give a path of higher values for a monster to flee
+along step by step.
+
+\begin{verbatim}
+######   ######   ######
+#2123#   #4321#   #6444#
+#1g123 + #321@1 = #42224
+#2123#   #4321#   #6444#
+######   ######   ######
+\end{verbatim}
+
+The best single move in this case would be for the goblin to move to
+one of the corners (combined cost 6) and for the player to step
+towards them, so
+
+\begin{verbatim}
+######   ######
+#g...#   #....#
+#.....   #..@..
+#....#   #....#
+######   ######
+ g123     3212     3335 
+ 11345 +  21@12 =  33357
+ 2345     3212     5557 
+\end{verbatim}
+
+The goblin is now stuck on an island (cost 3), so the player
+advances again,
+
+\begin{verbatim}
+######   ######
+#g...#   #....#
+#.....   #.@...
+#....#   #....#
+######   ######
+ g123     2123     2246 
+ 12345 +  1@123 =  22468
+ 2345     2123     4468 
+\end{verbatim}
+
+This is not productive as even with combined maps the goblin still gets
+stuck. Perhaps if we give more weight to the values of one map or the
+other, say multiplying the goblin costs by 2?
+
+\begin{verbatim}
+######   ######
+#g...#   #....#
+#.....   #.@...
+#....#   #....#
+######   ######
+ g123     2123     2369 
+ 11234 +  1@123 =  347AD
+ 2223     2123     67AD 
+  * 2
+\end{verbatim}
+
+This looks promising, though the best move is to move into the player,
+which might be bad. The easiest solution would be to treat the player
+(and any allies) as impassable squares on the goblin's flee map
+
+\begin{verbatim}
+######   ######
+#g...#   #....#
+#.#...   #.@...
+#....#   #....#
+######   ######
+ g123     2123     2369 
+ 1#234 +  1@123 =  3#7AD
+ 2223     2123     67AD 
+  * 2
+\end{verbatim}
+
+Better. The goblin might here roll unlucky and move down instead of
+right towards the exit, but that should create conditions that will
+cause them to try to move past the player:
+
+\begin{verbatim}
+######   ######
+#....#   #....#
+#g#...   #.@...
+#....#   #....#
+######   ######
+ 1234     2123     458B 
+ 1#456 +  1@123 =  1#9CF
+ 1234     2123     458B 
+  * 2
+\end{verbatim}
+
+However the monster may move back and forth between the back wall and an
+edge of the room instead of only moving towards the door if the RNG
+dictates that, but at least it is not always stuck, and it may roll well
+and escape. \\
+
+Another method would be to construct a line or path to the highest value
+on the monster's map instead of only looking for the single best move in
+any given turn; this would avoid the possibility of the monster getting
+stuck over multiple turns though may be more expensive to calculate and
+store. The monster's map also need not comprise the entire field; it may
+only need to be slightly larger than the player's field of vision. \\
+
+Different or non-integer weights can be used, or the maps could be
+subtracted instead of being added, though experimentation shows that
+adding the maps and applying a small positive integer weight to the
+monster flee map better avoids problems such as the monster islanding
+itself in a corner. \\
+
+Play testing with different approaches and map weights will likely be
+necessary. Level design may also be a factor, 3x3 rooms give an obvious
+path for the player to try to box a monster in with; larger rooms or
+rooms with multiple exits or rooms with rounded corners should create
+different weights for the monsters to flee along.
 
 \section*{The Diagonal}
 
@@ -209,19 +344,15 @@ different diagonal corridors:
 \begin{verbatim}
 8-way    @####   4-way    @.###
 corridor #.###   corridor #..##
-         ##.##            ##.##
-         ###x#            ##.x#
-         #####            #####
+         ##x##            ##x##
 \end{verbatim}
 
-Brogue is complicated in that it allows some diagonal moves. The choices
-for a two dimensional roguelike are pure 8-way, pure 4-way, or hybrid
-models somewhere between those two extremes. A 4-way Dijkstra Map
-algorithm can be used with 8-way motion provided 4-way moves are
-possible to everywhere that must be reached. Diagonal moves in such a
-case exist as shortcuts\textendash moving diagonally along the above
-4-way corridor (which Brogue would not permit, nor POWDER unless one is
-ploymorphed into a grid bug).
+Brogue (like rogue) is complicated in that it allows some diagonal
+moves. A 4-way Dijkstra Map algorithm can be used with 8-way motion
+provided 4-way moves are possible to everywhere that must be reached.
+Diagonal moves in such a case exist as shortcuts\textendash moving
+diagonally along the above 4-way corridor (which Brogue does not permit,
+nor POWDER unless one is ploymorphed into a grid bug).
 
 \section*{Diagonal Maps}
 
