@@ -1,4 +1,4 @@
-CFLAGS=-std=c99 -O3 -Wall -pedantic -fno-diagnostics-color -fstack-protector-all -fPIC -fPIE -pie -pipe
+CFLAGS=-std=c99 -O2 -Wall -pedantic -fno-diagnostics-color -fstack-protector-strong -fPIC -fPIE -pipe
 #CFLAGS+=-g
 
 .SUFFIXES: .lisp .fasl .tex .pdf
@@ -34,6 +34,9 @@ noise.lisp: util.fasl common.fasl
 noise.pdf: noise.tex
 
 poisson-disk-sample.lisp: util.fasl common.fasl
+
+roguememory: roguememory.c
+	$(CC) $(CFLAGS) -lncurses roguememory.c -o roguememory
 
 room-size-stats.lisp: util.fasl common.fasl
 
