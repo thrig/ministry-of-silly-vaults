@@ -2,6 +2,7 @@
 *.bbl
 *.blg
 *.core
+*.dSYM
 *.fasl
 *.log
 *.o

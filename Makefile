@@ -35,8 +35,9 @@ noise.pdf: noise.tex
 
 poisson-disk-sample.lisp: util.fasl common.fasl
 
+# compile flags can be very important to this one
 roguememory: roguememory.c
-	$(CC) $(CFLAGS) -lncurses roguememory.c -o roguememory
+	$(CC) -std=c99 -lncurses roguememory.c -o roguememory
 
 room-size-stats.lisp: util.fasl common.fasl
 
