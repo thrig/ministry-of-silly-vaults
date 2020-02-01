@@ -1,0 +1,6 @@
+some random star name generators
+
+ * star-name-maker - direct translation from a (yuck) Python version
+   posted to ##roguelikedev
+ * name-maker - simple substitution grammar, odds from maker.json
+ * awkwords-dsl - uses Lingua::Awkwords, a DSL for word generation

@@ -1,0 +1,36 @@
+#!/usr/bin/env perl
+#
+# a simple substitution grammar to derive star names from. for weighted
+# odds, these can be extracted from a given corpus via e.g.
+#
+#   < /usr/share/dict/words perl -nE 'say $1 while /([aeiou])/g' | tally
+
+use 5.28.0;
+use warnings;
+use Cpanel::JSON::XS qw(decode_json);
+use Data::Munge qw(list2re);
+use File::Slurper qw(read_text);
+use Math::Random::Discrete ();
+
+my $maker     = make_maker();
+my $num_words = 3;
+my $subs      = list2re keys $maker->{substitutions}->%*;
+
+say random_star_name() for 1 .. 23;
+
+sub random_star_name {
+    my $star = join ' ', map $maker->{templates}->rand, 0 .. rand $num_words;
+    $star =~ s/($subs)/$maker->{substitutions}{$1}->rand/eg;
+    return $star;
+}
+
+sub make_maker {
+    my $maker = decode_json read_text(shift @ARGV // "maker.json");
+    $maker->{templates} =
+      Math::Random::Discrete->new([ values $maker->{templates}->%* ],
+        [ keys $maker->{templates}->%* ]);
+    for my $odds (values $maker->{substitutions}->%*) {
+        $odds = Math::Random::Discrete->new([ values $odds->%* ], [ keys $odds->%* ]);
+    }
+    return $maker;
+}

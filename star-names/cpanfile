@@ -1,0 +1,5 @@
+requires 'Cpanel::JSON::XS';
+requires 'Data::Munge';
+requires 'File::Slurper';
+requires 'Lingua::Awkwords';
+requires 'Math::Random::Discrete';

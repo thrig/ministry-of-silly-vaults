@@ -1,0 +1,26 @@
+#!/usr/bin/env perl
+#
+# Awkwords implementation of a star name generator
+
+use 5.28.0;
+use warnings;
+use Lingua::Awkwords;
+
+Lingua::Awkwords::Subpattern->set_patterns(
+    C => [qw/b ch D gh H j l m n ng p q Q r S t tlh v w y/],
+    V => [qw/a e I o u/],
+    S => [ '', '-', '\'' ],
+    D => [qw/1 2 3 4 5 6 7 8/],
+);
+
+my $stars = Lingua::Awkwords->new( pattern => q{
+    [a/e/*3]
+    (CV(S)*5)
+    (CV(S)*2)
+    [CV(S)/*2]*10
+    CV(V)
+    /
+    C[V/VV]CV-D(D)
+});
+
+say join ' ', map $stars->render, 1 .. 100;

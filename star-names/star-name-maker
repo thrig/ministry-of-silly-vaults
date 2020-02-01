@@ -1,0 +1,38 @@
+#!/usr/bin/env perl
+
+use 5.28.0;
+use warnings;
+
+my $num_words  = 2;
+my $num_syll   = 3;
+my @vowels     = qw(a e i o u);
+my @consonants = qw(b c ch f g h j k l m n p ph q r s sh t th v w x y z);
+my @seps       = (' ', '-', '\'');
+
+sub random_star_name {
+    my @words = map {
+        join '',
+          map { $consonants[ rand @consonants ] . $vowels[ rand @vowels ] }
+          0 .. rand $num_syll
+    } 0 .. rand $num_words;
+    my $name = '';
+    $name .= $words[$_] . $seps[ rand @seps ] for 0 .. $#words - 1;
+    return $name . $words[-1];
+}
+
+sub unique_star_name {
+    state %seen;
+    my $name;
+    while (1) {
+        $name = random_star_name();
+        last if !$seen{$name}++;
+    }
+    return $name;
+}
+
+say random_star_name();
+
+for (1 .. 3) {
+    #srand 42;
+    say unique_star_name();
+}
