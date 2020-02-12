@@ -1,0 +1,93 @@
+#!/usr/bin/env perl
+#
+# raycasting practice for FOV... it makes a pretty pattern, at least
+
+use 5.24.0;
+use warnings;
+use Data::Dumper;
+use Math::Trig qw(:pi deg2rad rad2deg);
+
+# PORTABILITY - xterm control sequences - http://invisible-island.net/xterm/
+sub at              { "\e[" . (1 + $_[1]) . ';' . (1 + $_[0]) . 'H' }
+sub clear_screen () { "\e[1;1H\e[2J" }
+sub t_hili ()       { "\e[41m" }
+sub t_norm ()       { "\e[m" }
+
+# smaller means more CPU time searching (and for larger radius more
+# complete fills). possibly could optimize by quitting after some point
+# after the max_fill stops changing, or by guessing based on radius
+# around how many are required to fill... suitable values could be
+# scaled or guessed at based on the radius, or precomputed (though
+# floating point number differences may cause portability issues?)
+#my $MIN_DEG = deg2rad(0.5); # slow
+my $MIN_DEG = deg2rad(5);
+
+# center
+my $x = 40;
+my $y = 12;
+
+*STDOUT->autoflush(1);
+print clear_screen, t_norm, at($x, $y), '@';
+
+open my $fh, '>', 'log' or die "could not write 'log': $!\n";
+$fh->autoflush(1);
+sub logit { say $fh "@_" }
+
+my %divmap;
+for my $r (1 .. 12) {
+    my $rf  = $r + 0.5;
+    my $div = encircle($rf);
+    $divmap{$r} = $div;
+    my $angle = 0;
+    my $swing = pi2 / $div;
+    my $ch    = fillchar();
+    while ($angle < pi2) {
+        my $nx = int($rf * cos $angle);
+        my $ny = int($rf * sin $angle);
+        print at($x + $nx, $y - $ny), $ch;
+        $angle += $swing;
+    }
+}
+logit Dumper \%divmap;
+print at(0, 23);
+
+# we're looking for the smallest divisor of those that fill the most
+# squares; 8 is the minimum for radius of 1.something (probably faster
+# to do that ring not with trig functions); larger radius require larger
+# divisors and so smaller angles to fully fill them in
+sub encircle {
+    my ($radius) = @_;
+    my %seen;
+    my $div      = 8;
+    my $max_fill = 0;
+    while (1) {
+        my $swing = pi2 / $div;
+        last if $swing < $MIN_DEG;
+        my $angle = 0;
+        while ($angle < pi2) {
+            my $nx = int($radius * cos $angle);
+            my $ny = int($radius * sin $angle);
+            #$seen{$div}{ ( 5 + $nx) . ',' . ( 5 - $ny ) }++;
+            $seen{$div}{ $nx . ',' . $ny }++;
+            $angle += $swing;
+        }
+        my $filled = keys $seen{$div}->%*;
+        $max_fill = $filled if $filled > $max_fill;
+        $div++;
+    }
+    my $best = ~0;
+    while (my ($div, $ref) = each %seen) {
+        next unless $ref->%* == $max_fill;
+        $best = $div if $div < $best;
+    }
+    return $best;
+}
+
+# these were chosen to better contrast the successive rings
+sub fillchar {
+    my @chars = qw/. x o m b/;
+    state $i = 0;
+    my $ch = $chars[ $i++ ];
+    $i %= @chars;
+    return $ch;
+}

@@ -1,0 +1,3 @@
+requires 'File::Slurper';
+requires 'Game::TextPatterns';
+requires 'Math::Trig';

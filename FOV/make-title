@@ -1,0 +1,12 @@
+#!/usr/bin/env perl
+use 5.28.0;
+use warnings;
+
+use File::Slurper qw(read_text);
+use Game::TextPatterns;
+
+my $xomb  = Game::TextPatterns->new(pattern => read_text "xomb-art2");
+my $title = Game::TextPatterns->new(pattern => read_text "title");
+
+$xomb->draw_in([ 10, 5 ], $title);
+print $xomb->string;

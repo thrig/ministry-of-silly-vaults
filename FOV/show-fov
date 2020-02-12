@@ -1,0 +1,145 @@
+#!/usr/bin/env perl
+#
+# Field of View (FOV) via raycast
+
+use 5.24.0;
+use warnings;
+use Data::Dumper;
+use Math::Trig qw(:pi deg2rad rad2deg);
+
+our $MAX_X = 78;
+our $MAX_Y = 23;
+
+package Line {
+    use integer;
+    # Bresenham. probably from Rosetta Code
+    sub map_line {
+        my ($x0, $y0, $x1, $y1) = @_;
+        my $dx  = abs $x1 - $x0;
+        my $sx  = $x0 < $x1 ? 1 : -1;
+        my $dy  = abs $y1 - $y0;
+        my $sy  = $y0 < $y1 ? 1 : -1;
+        my $err = ($dx > $dy ? $dx : -$dy) / 2;
+        my @points;
+        while (1) {
+            last if $x0 < 0 or $x0 >= $MAX_X or $y0 < 0 or $y0 >= $MAX_Y;
+            push @points, $x0, $y0;
+            last if $x0 == $x1 and $y0 == $y1;
+            my $e2 = $err;
+            if ($e2 > -$dx) {
+                $err -= $dy;
+                $x0  += $sx;
+            }
+            if ($e2 < $dy) {
+                $err += $dx;
+                $y0  += $sy;
+            }
+        }
+        # omit source point (so the player or what does not get drawn over)
+        splice @points, 0, 2;
+        return @points;
+    }
+}
+
+# PORTABILITY - xterm control sequences - http://invisible-island.net/xterm/
+sub at              { "\e[" . (1 + $_[1]) . ';' . (1 + $_[0]) . 'H' }
+sub clear_screen () { "\e[1;1H\e[2J" }
+sub t_hili ()       { "\e[41m" }
+sub t_norm ()       { "\e[m" }
+
+# smaller means more CPU time searching (and for larger radius more
+# complete fills). possibly could optimize by quitting after some point
+# after the max_fill stops changing, or by guessing based on radius
+# around how many are required to fill...
+#my $MIN_DEG = deg2rad(0.5);
+my $MIN_DEG = deg2rad(5);
+
+# center
+my $x = 60;
+my $y = 12;
+
+*STDOUT->autoflush(1);
+print clear_screen, t_norm;
+
+# some random fill in a map to restrict FOV with
+my @map;
+for my $r (0 .. 23) {
+    for my $c (0 .. 40) {
+        my $ch = rand() > 0.5 ? '#' : '.';
+        $map[$r][$c] = $ch;
+        $map[$r][ $c + 40 ] = $ch;
+    }
+}
+
+open my $fh, '>', 'log' or die "could not write 'log': $!\n";
+$fh->autoflush(1);
+sub logit { say $fh "@_" }
+
+# radius => div (via `raycast` encircle calculation)
+# 1 => 8
+# 2 => 22
+# 3 => 32
+# 4 => 40
+# 5 => 48
+# 6 => 56
+# 7 => 64
+# 8 => 72
+# 9 => 136
+# 10 => 124
+# 11 => 152
+# 12 => 152
+my $div    = 64;
+my $radius = 7;
+
+print at($x, $y), '@';
+my @points = ring_points($radius, pi2 / $div, $x, $y);
+while (my ($px, $py) = splice @points, 0, 2) {
+    my @lps = Line::map_line($x, $y, $px, $py);
+    while (my ($lx, $ly) = splice @lps, 0, 2) {
+        my $ch = $map[$ly][$lx];
+        print at($lx, $ly), $ch;
+        last if $ch eq '#';
+    }
+}
+
+$x = 20;
+print at($x, $y), '@';
+@points = ring_points($radius, pi2 / $div, $x, $y);
+while (my ($px, $py) = splice @points, 0, 2) {
+    my @lps = Line::map_line($x, $y, $px, $py);
+    while (my ($lx, $ly) = splice @lps, 0, 2) {
+        my $ch = $map[$ly][$lx];
+        print at($lx, $ly), $ch;
+        #last if $ch eq '#';
+    }
+}
+
+print at(0, $MAX_Y);
+
+# NOTE can produce points that are off of the board
+sub ring_points {
+    my ($radius, $swing, $x, $y) = @_;
+    my $rf    = 0.5 + $radius;
+    my $angle = 0;
+    my @points;
+    while ($angle < pi2) {
+        my $nx = $x + int($rf * cos $angle);
+        my $ny = $y + int($rf * sin $angle);
+        push @points, $nx, $ny;
+        #  if $nx >= 0
+        #  and $nx < $MAX_X
+        #  and $ny >= 0
+        #  and $ny < $MAX_Y;
+        $angle += $swing;
+    }
+    return @points;
+}
+
+# these were chosen to better contrast the successive rings
+sub fillchar {
+    my @chars = qw/. x o m b/;
+    state $i = 0;
+    my $ch = $chars[ $i++ ];
+    $i %= @chars;
+    return $ch;
+}
