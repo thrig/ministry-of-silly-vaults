@@ -6,6 +6,8 @@ use 5.24.0;
 use warnings;
 use Data::Dumper;
 use Math::Trig qw(:pi deg2rad rad2deg);
+use lib '.';
+use Misc;
 
 our $MAX_X = 78;
 our $MAX_Y = 23;
@@ -42,12 +44,6 @@ package Line {
     }
 }
 
-# PORTABILITY - xterm control sequences - http://invisible-island.net/xterm/
-sub at              { "\e[" . (1 + $_[1]) . ';' . (1 + $_[0]) . 'H' }
-sub clear_screen () { "\e[1;1H\e[2J" }
-sub t_hili ()       { "\e[41m" }
-sub t_norm ()       { "\e[m" }
-
 # center
 my $x = 60;
 my $y = 12;
@@ -70,18 +66,6 @@ $fh->autoflush(1);
 sub logit { say $fh "@_" }
 
 # radius => div (via `raycast` encircle calculation)
-# 1 => 8
-# 2 => 22
-# 3 => 32
-# 4 => 40
-# 5 => 48
-# 6 => 56
-# 7 => 64
-# 8 => 72
-# 9 => 136
-# 10 => 124
-# 11 => 152
-# 12 => 152
 my $div    = 64;
 my $radius = 7;
 
@@ -115,17 +99,3 @@ while (my ($px, $py) = splice @points, 0, 2) {
 
 print at(0, $MAX_Y);
 
-# NOTE can produce points that are off of the board
-sub ring_points {
-    my ($radius, $swing, $x, $y) = @_;
-    my $rf    = 0.5 + $radius;
-    my $angle = 0;
-    my @points;
-    while ($angle < pi2) {
-        my $nx = $x + int($rf * cos $angle);
-        my $ny = $y + int($rf * sin $angle);
-        push @points, $nx, $ny;
-        $angle += $swing;
-    }
-    return @points;
-}

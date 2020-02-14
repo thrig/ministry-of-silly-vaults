@@ -1,3 +1,5 @@
 requires 'File::Slurper';
-requires 'Game::TextPatterns';
+requires 'Game::TextPatterns', '>= 1.46';
+requires 'JSON::MaybeXS';
+requires 'List::Util';
 requires 'Math::Trig';

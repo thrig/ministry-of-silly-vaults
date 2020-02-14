@@ -5,13 +5,12 @@
 use 5.24.0;
 use warnings;
 use Data::Dumper;
+use File::Slurper 'write_text';
+use JSON::MaybeXS ();
+use List::Util 'pairmap';
 use Math::Trig qw(:pi deg2rad rad2deg);
-
-# PORTABILITY - xterm control sequences - http://invisible-island.net/xterm/
-sub at              { "\e[" . (1 + $_[1]) . ';' . (1 + $_[0]) . 'H' }
-sub clear_screen () { "\e[1;1H\e[2J" }
-sub t_hili ()       { "\e[41m" }
-sub t_norm ()       { "\e[m" }
+use lib '.';
+use Misc;
 
 # smaller means more CPU time searching (and for larger radius more
 # complete fills). possibly could optimize by quitting after some point
@@ -19,8 +18,8 @@ sub t_norm ()       { "\e[m" }
 # around how many are required to fill... suitable values could be
 # scaled or guessed at based on the radius, or precomputed (though
 # floating point number differences may cause portability issues?)
-#my $MIN_DEG = deg2rad(0.5); # slow
-my $MIN_DEG = deg2rad(5);
+my $MIN_DEG = deg2rad(0.5);    # slow
+#my $MIN_DEG = deg2rad(5);
 
 # center
 my $x = 40;
@@ -33,11 +32,43 @@ open my $fh, '>', 'log' or die "could not write 'log': $!\n";
 $fh->autoflush(1);
 sub logit { say $fh "@_" }
 
-my %divmap;
-for my $r (1 .. 12) {
-    my $rf  = $r + 0.5;
+package LineCache {
+    use integer;
+    my %seen;
+    sub reset { %seen = () }
+
+    sub uline {
+        my ($x0, $y0, $x1, $y1) = @_;
+        my $dx  = abs $x1 - $x0;
+        my $sx  = $x0 < $x1 ? 1 : -1;
+        my $dy  = abs $y1 - $y0;
+        my $sy  = $y0 < $y1 ? 1 : -1;
+        my $err = ($dx > $dy ? $dx : -$dy) / 2;
+        my @points;
+        while (1) {
+            push @points, $x0, $y0 unless $seen{ $x0 . ',' . $y0 }++;
+            last if $x0 == $x1 and $y0 == $y1;
+            my $e2 = $err;
+            if ($e2 > -$dx) {
+                $err -= $dy;
+                $x0  += $sx;
+            }
+            if ($e2 < $dy) {
+                $err += $dx;
+                $y0  += $sy;
+            }
+        }
+        return @points;
+    }
+}
+
+my (%divmap, %ringpoints, %fillpoints);
+
+# 11 is the maximum below the (arbitrary) limit of an 80x24 terminal
+for my $radius (1 .. 11) {
+    my $rf  = $radius + 0.5;
     my $div = encircle($rf);
-    $divmap{$r} = $div;
+    $divmap{$radius} = $div;
     my $angle = 0;
     my $swing = pi2 / $div;
     my $ch    = fillchar();
@@ -48,7 +79,25 @@ for my $r (1 .. 12) {
         $angle += $swing;
     }
 }
-logit Dumper \%divmap;
+# caching is (probably) good
+while (my ($radius, $div) = each %divmap) {
+    $ringpoints{$radius} = [ ring_points($radius, pi2 / $div, 0, 0) ];
+    $fillpoints{$radius} =
+      [ pairmap { LineCache::uline(0, 0, $a, $b) }
+        $ringpoints{$radius}->@* ];
+    LineCache::reset();
+}
+#$Data::Dumper::Sortkeys = 1;
+#$Data::Dumper::Indent   = $Data::Dumper::Quotekeys = 0;
+#logit(
+#    Data::Dumper->Dump(
+#        [ \%fillpoints, \%ringpoints ],
+#        [qw/*fill_points *ring_points/]
+#    )
+#);
+#my $json = JSON::MaybeXS->new(utf8 => 1, pretty => 0);
+#write_text "ring-points.json", $json->encode( \%ringpoints );
+
 print at(0, 23);
 
 # we're looking for the smallest divisor of those that fill the most

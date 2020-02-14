@@ -7,6 +7,7 @@ requires 'Game::LevelMap';
 requires 'Game::PseudoRand';
 requires 'Game::TextPatterns', '>= 1.46';
 requires 'Imager';
+requires 'JSON::MaybeXS';
 requires 'List::Util';
 requires 'List::UtilsBy';
 requires 'Math::Random::Discrete';
