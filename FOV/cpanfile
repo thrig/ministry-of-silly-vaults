@@ -1,4 +1,5 @@
 requires 'File::Slurper';
+requires 'Game::RaycastFOV';
 requires 'Game::TextPatterns', '>= 1.46';
 requires 'JSON::MaybeXS';
 requires 'List::Util';

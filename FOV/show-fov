@@ -5,44 +5,13 @@
 use 5.24.0;
 use warnings;
 use Data::Dumper;
+use Game::RaycastFOV qw(circle raycast swing_circle);
 use Math::Trig qw(:pi deg2rad rad2deg);
 use lib '.';
 use Misc;
 
 our $MAX_X = 78;
 our $MAX_Y = 23;
-
-package Line {
-    use integer;
-    # Bresenham. probably from Rosetta Code. callback with abort is
-    # typically more efficient than going through the list of points,
-    # especially where the FOV is blocked lots
-    sub map_line {
-        my ($x0, $y0, $x1, $y1, $cb) = @_;
-        my $dx        = abs $x1 - $x0;
-        my $sx        = $x0 < $x1 ? 1 : -1;
-        my $dy        = abs $y1 - $y0;
-        my $sy        = $y0 < $y1 ? 1 : -1;
-        my $err       = ($dx > $dy ? $dx : -$dy) / 2;
-        my $not_first = 0;
-        while (1) {
-            last if $x0 < 0 or $x0 >= $MAX_X or $y0 < 0 or $y0 >= $MAX_Y;
-            if ($not_first++) {
-                last if $cb->($x0, $y0) == -1;
-            }
-            last if $x0 == $x1 and $y0 == $y1;
-            my $e2 = $err;
-            if ($e2 > -$dx) {
-                $err -= $dy;
-                $x0  += $sx;
-            }
-            if ($e2 < $dy) {
-                $err += $dx;
-                $y0  += $sy;
-            }
-        }
-    }
-}
 
 # center
 my $x = 60;
@@ -69,33 +38,34 @@ sub logit { say $fh "@_" }
 my $div    = 64;
 my $radius = 7;
 
-print at($x, $y), '@';
-my @points = ring_points($radius, pi2 / $div, $x, $y);
-while (my ($px, $py) = splice @points, 0, 2) {
-    Line::map_line(
-        $x, $y, $px, $py,
-        sub {
-            my ($lx, $ly) = @_;
-            my $ch = $map[$ly][$lx];
-            print at($lx, $ly), $ch;
-            return -1 if $ch eq '#';
-        }
-    );
-}
+$map[$y][$x] = '@';
+
+# or instead try the similar but maybe different \&circle (which MUST
+# NOT be passed the pi2/$div that swing_circle needs)
+my $cfn = \&swing_circle;
+my %plotted;
+raycast(
+    $cfn, sub {
+        my ($lx, $ly) = @_;
+        return -1 if $lx < 0 or $lx >= $MAX_X or $ly < 0 or $ly >= $MAX_Y;
+        my $ch = $map[$ly][$lx];
+        print at($lx, $ly), $ch unless $plotted{ $lx . ',' . $ly }++;
+        return -1 if $ch eq '#';
+    }, $x, $y, $radius, pi2 / $div
+);
 
 $x = 20;
-print at($x, $y), '@';
-@points = ring_points($radius, pi2 / $div, $x, $y);
-while (my ($px, $py) = splice @points, 0, 2) {
-    Line::map_line(
-        $x, $y, $px, $py,
-        sub {
-            my ($lx, $ly) = @_;
-            my $ch = $map[$ly][$lx];
-            print at($lx, $ly), $ch;
-        }
-    );
-}
+$map[$y][$x] = '@';
+
+%plotted = ();
+raycast(
+    $cfn, sub {
+        my ($lx, $ly) = @_;
+        return -1 if $lx < 0 or $lx >= $MAX_X or $ly < 0 or $ly >= $MAX_Y;
+        my $ch = $map[$ly][$lx];
+        print at($lx, $ly), $ch unless $plotted{ $lx . ',' . $ly }++;
+        return 1;
+    }, $x, $y, $radius, pi2 / $div
+);
 
 print at(0, $MAX_Y);
-

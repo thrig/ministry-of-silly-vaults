@@ -5,6 +5,7 @@ requires 'Function::Parameters';
 requires 'Game::DijkstraMap', '>= 1.01';
 requires 'Game::LevelMap';
 requires 'Game::PseudoRand';
+requires 'Game::RaycastFOV';
 requires 'Game::TextPatterns', '>= 1.46';
 requires 'Imager';
 requires 'JSON::MaybeXS';
