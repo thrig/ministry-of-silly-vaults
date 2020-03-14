@@ -15,7 +15,7 @@
 
 \title{Dijkstra Maps in Roguelikes}
 \author{Jeremy Mates}
-\date{January 11, 2020}
+\date{March 13, 2020}
 
 \usepackage{hyperref}
 \hypersetup{pdfauthor={Jeremy Mates},pdftitle={Dijkstra Maps in Roguelikes}}
@@ -57,7 +57,8 @@ adjacent to that point write the next highest number, \texttt{1}.
 .......
 \end{verbatim}
 
-And so forth until the map is filled. This is a Dijkstra Map.
+And so forth until the map is filled. This is a Dijkstra Map (with
+Manhattan distances).
 
 \begin{verbatim}
 6543456
@@ -357,7 +358,7 @@ nor POWDER unless one is ploymorphed into a grid bug).
 \section*{Diagonal Maps}
 
 8-way maps typically assign equal costs to all adjacent squares. The
-original raptor map thus looks like:
+original raptor map instead with Chebyshev distances:
 
 \begin{verbatim}
 ......R  3333333
