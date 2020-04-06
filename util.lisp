@@ -73,8 +73,10 @@
 (defmacro capture-stdout (where &body body)
   `(capture *standard-output* ,where ,@body))
 
-(defmacro no-return (&body body)
-  `(progn ,@body (values)))
+(defmacro no-return (&body body) `(progn ,@body (values)))
+
+(defmacro odds-onein (n) `(zerop (random ,n)))
+(defmacro odds-ninm (n m) `(< (random ,m) ,n))
 
 (defun poisson (l)
   (do ((L (exp (- l)))

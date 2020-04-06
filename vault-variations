@@ -1,0 +1,50 @@
+#!/usr/bin/env perl
+#
+# vault-variations - determine how many unique vault variations there
+# are by flips and rotations of the starting vault
+#
+#   ABCDE
+#   FGHIJ
+#   KLMNO
+#
+# of which there are eight unique variations by signature
+# 
+#   ABCDEFGHIJKLMNO
+#   AFKBGLCHMDINEJO
+#   EDCBAJIHGFONMLK
+#   EJODINCHMBGLAFK
+#   KFALGBMHCNIDOJE
+#   KLMNOFGHIJABCDE
+#   OJENIDMHCLGBKFA
+#   ONMLKJIHGFEDCBA
+
+use 5.28.0;
+use warnings;
+use experimental 'signatures';
+use Data::Dumper;
+use Game::TextPatterns;
+
+my $pat = Game::TextPatterns->new(pattern => "ABCDE\nFGHIJ\nKLMNO");
+
+my %sigs = (sig($pat) => 1);
+
+flips($pat);
+
+# overkill: a single rotation + all the flips is sufficient to derive
+# all unique vault variations
+for my $r (0 .. 3) {
+    $pat->rotate($r);
+    flips($pat);
+}
+
+#print Dumper \%sigs;
+say for sort keys %sigs;
+
+sub flips ($pat) {
+    for my $method (qw{flip_cols flip_rows flip_cols}) {
+        $pat->$method;
+        $sigs{ sig($pat) }++;
+    }
+}
+
+sub sig ($pat) { join '', split "\n", $pat->string }
