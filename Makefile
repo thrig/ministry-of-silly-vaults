@@ -43,6 +43,10 @@ room-size-stats.lisp: util.fasl common.fasl
 
 rooms-random.lisp: util.fasl common.fasl
 
+# includes are for MacPorts
+sin-map: sin-map.c
+	$(CC) $(CFLAGS) -I/opt/local/include -L/opt/local/lib -laa -lm sin-map.c -o sin-map
+
 termlbrot: termlbrot.c
 	$(CC) $(CFLAGS) -lm termlbrot.c -o termlbrot
 
