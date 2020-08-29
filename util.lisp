@@ -164,8 +164,39 @@
   (declare (fixnum n))
   (the fixnum (if (minusp n) -1 1)))
 
+; from pseudo-random-dist/skew-roll.lisp
+(defun skew-roll (times sides &key (drop-lo 0) (drop-hi 0))
+  (when (>= (+ drop-lo drop-hi) times)
+    (error "cannot drop more elements than will generate"))
+  (let ((rolls (sort (loop :repeat times :collecting (random sides)) #'<)))
+    (when (plusp drop-hi)
+      (rplacd (nthcdr (- times drop-hi 1) rolls) nil))
+    (when (plusp drop-lo)
+      (setf rolls (nthcdr drop-lo rolls)))
+    rolls))
+(defun skew-dist (min max &key (dice 3) (drop-lo 0) (drop-hi 0) (pinch 0))
+  (when (< max min) (error "max ~a less than min ~a" max min))
+  (let* ((times (+ dice pinch))
+         (range (- max min))
+         (sides (floor (+ range times) times))
+         (odd (- range (* times (1- sides))))
+         (roll
+          (reduce #'+
+                  (skew-roll (+ times drop-lo drop-hi) sides :drop-lo drop-lo
+                   :drop-hi drop-hi))))
+    (when (plusp odd) (incf roll (random (1+ odd))))
+    (+ roll min)))
+
 (defmacro while (expr &body body)
   (let ((label (gensym)))
     `(block while
       (tagbody ,label
         (if ,expr (progn ,@body (go ,label)))))))
+
+(defmacro with-each-cell (array copy n &body body)
+  (let ((len (gensym)) (line (gensym)))
+    `(let* ((,len (array-total-size ,array))
+            (,copy
+             (make-array ,len :element-type (array-element-type ,array)
+                         :displaced-to ,array)))
+       (dotimes (,n ,len) ,@body))))
