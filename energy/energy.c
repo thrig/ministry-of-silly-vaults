@@ -40,16 +40,6 @@ void ecs_energy(struct ents *el) {
     }
 }
 
-unsigned int ent_getid(struct ents *el) {
-    for (unsigned int eid = 0; eid < ENT_COUNT; eid++)
-        if (el->mask[eid] == COMP_NONE) return eid;
-    abort(); // whoops entity list was too small
-}
-
-inline void ent_delete(struct ents *el, unsigned int eid) {
-    el->mask[eid] = COMP_NONE;
-}
-
 unsigned int ent_create(struct ents *el, char ch, char *name, ent_update eup,
                         int x, int y) {
     unsigned int eid    = ent_getid(el);
@@ -61,6 +51,22 @@ unsigned int ent_create(struct ents *el, char ch, char *name, ent_update eup,
     el->location[eid].x  = x;
     el->location[eid].y  = y;
     return eid;
+}
+
+inline void ent_delete(struct ents *el, unsigned int eid) {
+    el->mask[eid] = COMP_NONE;
+}
+
+unsigned int ent_getid(struct ents *el) {
+    for (unsigned int eid = 0; eid < ENT_COUNT; eid++)
+        if (el->mask[eid] == COMP_NONE) return eid;
+    abort(); // whoops entity list was too small
+}
+
+struct ents *ent_init(void) {
+    struct ents *el;
+    if ((el = calloc(1, sizeof(struct ents))) == NULL) oom();
+    return el;
 }
 
 unsigned int monst_update(struct ents *el, unsigned int eid,
