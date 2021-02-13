@@ -10,15 +10,22 @@
 #  2. circular buffer. animates to move are inserted as appropriate
 #     somewhere into a circular buffer, with the caveat that without
 #     additional complications no move can be scheduled beyond what the
-#     buffer can hold (the other two do not have this restriction)
+#     buffer can hold (the others do not have this restriction)
 #  3. priority queue. a standard priority queue algorithm is used to
 #     schedule events. a turn-based epoch prevents actions with a low
 #     priority from forever drowning out longer events from happening
+#  4. grouping priority queue. events that happen at the same time are
+#     returned in a single set
+#
+# note that some methods do not allow or would require complications to
+# speed up or slow down an animate; that is, an animate moves, then
+# somewhere before its next move something hits it with a slowing spell,
+# or, worse, a speed up spell
 
 use 5.24.0;
 use warnings;
 use Benchmark qw(cmpthese);
-use Function::Parameters;
+use List::GroupingPriorityQueue;
 use List::Util qw(min shuffle);
 use Queue::Priority;
 
@@ -31,7 +38,8 @@ package Animate {
       '<=>' => sub { $_[0]->cost <=> $_[1]->cost };
 }
 
-fun make_cbuf($size) {
+sub make_cbuf {
+    my ( $size ) = @_;
     my @buf;
     my $cur = 0;
     return (
@@ -41,17 +49,20 @@ fun make_cbuf($size) {
             $cur %= $size;
             return $ret;
         },
-        fun( $offset, @events ) {
+        sub {
+            my ( $offset, @events ) = @_;
             push $buf[ ( $cur + $offset - 1 ) % $size ]->@*, @events;
         },
     );
 }
 
-fun make_animates( :$count, :$cost ) {
-    [ map Animate->new( name => $_, cost => $cost ), 1 .. $count ]
+sub make_animates {
+    my ( %args ) = @_;
+    [ map Animate->new( name => $_, cost => $args{cost} ), 1 .. $args{count} ]
 }
 
-fun run_cost( $animates, $moves, $costfn ) {
+sub run_cost {
+    my ( $animates, $moves, $costfn ) = @_;
     my $turn = 0;
     while ( $moves > 0 ) {
         my $min = min map $_->cost, $animates->@*;
@@ -72,8 +83,9 @@ fun run_cost( $animates, $moves, $costfn ) {
     }
 }
 
-fun run_cbuf( $bufsize, $animates, $moves, $costfn ) {
-    my ( $active, $insert ) = make_cbuf $bufsize;
+sub run_cbuf {
+    my ( $bufsize, $animates, $moves, $costfn ) = @_;
+    my ( $active, $insert ) = make_cbuf( $bufsize );
     for my $ani ( $animates->@* ) {
         $insert->( 1, $ani );
     }
@@ -88,7 +100,29 @@ fun run_cbuf( $bufsize, $animates, $moves, $costfn ) {
     }
 }
 
-fun run_priq( $animates, $moves, $costfn ) {
+sub run_lgpq {
+    my ( $animates, $moves, $costfn ) = @_;
+    # use OO interface so not comparing the slOOw method calls of
+    # Queue::Priority with fast grpriq_add function calls
+    my $q = List::GroupingPriorityQueue->new;
+    for my $ani ( $animates->@* ) {
+        $q->insert( $ani, $ani->cost );
+    }
+    my $turn = 0;
+    while ( $moves > 0 ) {
+        my $aniturn = $q->min;
+        $turn = $aniturn->[1];
+        for my $ani ( shuffle $aniturn->[0]->@* ) {
+            my $newcost = $turn + $costfn->();
+            $ani->cost( $newcost );
+            $q->insert( $ani, $newcost );
+            $moves--;
+        }
+    }
+}
+
+sub run_priq {
+    my ( $animates, $moves, $costfn ) = @_;
     my $q = Queue::Priority->new( scalar $animates->@* );
     for my $ani ( $animates->@* ) {
         $q->insert($ani);
@@ -100,25 +134,28 @@ fun run_priq( $animates, $moves, $costfn ) {
         push @todo, $q->remove while !$q->is_empty and $q->peek->cost == $turn;
         for my $ani ( shuffle @todo ) {
             $ani->cost( $turn + $costfn->() );
-            $q->insert($ani);
+            $q->insert( $ani );
             $moves--;
         }
     }
 }
 
-fun compare( :$iters, :$moves, :$ani_count, :$costfn, :$bufsize ) {
+sub compare {
+    my ( %args ) = @_;
     cmpthese(
-        $iters,
+        $args{iters},
         {   cost => sub {
-                run_cost( make_animates( count => $ani_count, cost => 0 ), $moves, $costfn );
+                run_cost( make_animates( count => $args{ani_count}, cost => 0 ), $args{moves}, $args{costfn} );
             },
             cbuf => sub {
-                run_cbuf( $bufsize, make_animates( count => $ani_count, cost => 0 ),
-                    $moves, $costfn );
-
+                run_cbuf( $args{bufsize}, make_animates( count => $args{ani_count}, cost => 0 ),
+                    $args{moves}, $args{costfn} );
+            },
+            lgpq => sub {
+                run_lgpq( make_animates( count => $args{ani_count}, cost => 1 ), $args{moves}, $args{costfn} );
             },
             priq => sub {
-                run_priq( make_animates( count => $ani_count, cost => 1 ), $moves, $costfn );
+                run_priq( make_animates( count => $args{ani_count}, cost => 1 ), $args{moves}, $args{costfn} );
             },
         }
     );
