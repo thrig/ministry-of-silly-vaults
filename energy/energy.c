@@ -30,7 +30,7 @@ void ecs_energy(struct ents *el) {
         if ((el->mask[eid] & COMP_ENERGY) == COMP_ENERGY) {
             if (el->energy[eid].cost == min) {
                 unsigned int cost = (el->energy[eid].fn)(el, eid, clock);
-                assert(cost > 0);
+                assert(cost > 0 && cost < UINT_MAX);
                 el->energy[eid].cost = cost;
             } else {
                 // not their turn... make it closer to being so

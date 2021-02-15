@@ -1,0 +1,407 @@
+#!/usr/bin/env perl
+#
+# plus-mages - energy systems (see "comparison") revisited with wizards
+# who meddle in the affairs of others, casting haste or slowing spells
+# on random animates. design goals:
+#
+#  * "slow" halves the speed at which the animate moves, "haste"
+#    doubles it. no stacking.
+#  * the effect can target any animate, not just the vastly simpler case
+#    of the current animate quaffing a potion of speed
+#  * the effect ideally should be immediate, not delayed until the next
+#    move of the targetted animate (is this even feasible?)
+#  * considerations of more complicated situations, like what happens if
+#    the slow spell was only 50% effective? or can there be a stack of
+#    slow speeds depending on how many times they've been slowed? etc
+
+use 5.24.0;
+use warnings;
+use Getopt::Long qw(GetOptions);
+use List::GroupingPriorityQueue qw(grpriq_add grpriq_min);
+
+use constant { SLOW => 0, NORM => 1, FAST => 2 };
+
+package Animate {
+    use Moo;
+    has qw(name is ro);
+    has qw(cost is rw);
+    has qw(flag is rw);
+    use overload '""' => sub { $_[0]->name };
+}
+
+GetOptions(
+    'turns|T'   => \my $Flag_Turns,
+    'verbose|v' => \my $Flag_Verbose,
+) or exit 1;
+
+# may need more than this to suss out rare conditions
+$Flag_Turns //= 100;
+
+#do_cbuf();
+do_cost();
+#do_flag();
+#do_lgpq(); # NOTE TODO incomplete
+
+sub do_cbuf {
+    say "Circular Buffer" if $Flag_Verbose;
+
+    my $animates = make_animates( count => 3 );
+
+    my $cbuf = make_cbuf(8);
+
+    for my $ani ( $animates->@* ) {
+        $cbuf->{insert}->( 1, $ani );
+    }
+
+    for my $turn ( 1 .. $Flag_Turns ) {
+        my $todo = $cbuf->{active}->() // next;
+
+        say "Turn $turn" if $Flag_Verbose;
+
+        # NOTE this may need a sort (by name) or shuffle for more or
+        # less predictability than "order of insertion into buffer"
+        for my $ani ( $todo->@* ) {
+            my $flag = $ani->flag;
+            say "  #$ani moves (cur speed $flag)" if $Flag_Verbose;
+
+            cbuf_cast( $animates, $todo, $cbuf );
+
+            # might have changed since we last looked
+            $flag = $ani->flag;
+
+            # this is not very flexible -- need to use some value less
+            # than the buffer size and probably a power of two. with
+            # 1,2,4,8,16 for speeds then 1,2 could be hasted and 8,16
+            # slowed depending on spell strength or stacking of the
+            # status effects should the game need more speed categories
+            # than just fast/normal/slow (and an obvious problem if you
+            # want speed values somewhere between 1 and 2). working out
+            # what an immediate spell effect does to an animate that is
+            # somewhere in the buffer is very complicated, see cbuf_cast
+            $cbuf->{insert}->( $flag == FAST ? 1 : $flag == SLOW ? 4 : 2, $ani );
+        }
+    }
+}
+
+sub cbuf_cast {
+    my ( $animates, $todo, $cbuf ) = @_;
+
+    my $target  = int rand $animates->@*;
+    my $curflag = $animates->[$target]->flag;
+    my $newflag;
+
+    if ( int rand(2) ) {
+        return if $curflag == FAST;
+        $newflag = FAST;
+        $animates->[$target]->flag(FAST);
+        say "    ... casts haste on #$target" if $Flag_Verbose;
+    } else {
+        return if $curflag == SLOW;
+        $newflag = SLOW;
+        $animates->[$target]->flag(SLOW);
+        say "    ... casts slow on #$target" if $Flag_Verbose;
+    }
+
+    # is the target on the TODO list? if so do not need to reschedule it
+    for my $ani ( $todo->@* ) {
+        # KLUGE instead should be an ID value or something
+        return if $target == $ani->name;
+    }
+
+    # these were worked out by hand and are specific to the exact buffer
+    # conditions and timer values. so not flexible...
+    if ( $curflag == NORM and $newflag == SLOW ) {
+        say "    ... slowed, need +2 out for #$target" if $Flag_Verbose;
+        $cbuf->{remove}->($target);
+        $cbuf->{insert}->( 2, $animates->[$target] );
+
+    } elsif ( $newflag == FAST ) {
+        say "    ... hasted, need +1 out for #$target" if $Flag_Verbose;
+        $cbuf->{remove}->($target);
+        $cbuf->{insert}->( 1, $animates->[$target] );
+    }
+    #elsif ($curflag == SLOW and $newflag == NORM)
+    # want +2 out but only when +3 away from moving (but this cannot
+    # happen here as the spell only changes the flag to FAST or SLOW).
+    # also this is complicated as would need to search for the +3
+    # condition and only then remove/insert, otherwise we might make the
+    # animate move even slower, as if they're moving in +1 after being
+    # slow for a while and then we hit them with a +2... so "return to
+    # NORM" really should only happen when the animate moves, probably
+    # when a timer runs out, or they quaff a cancel potion. otherwise,
+    # use a different energy system
+
+    return;
+}
+
+sub do_cost {
+    say "Cost System" if $Flag_Verbose;
+
+    my $animates = make_animates( count => 3 );
+
+    # the notion of a turn is vague in a cost-based system; it might be
+    # each move an animate makes or instead some arbitrary division of
+    # the cost
+    for my $turn ( 1 .. $Flag_Turns ) {
+        say "Turn $turn" if $Flag_Verbose;
+
+        my $min = ~0;
+        for my $cost ( map $_->cost, $animates->@* ) {
+            $min = $cost if $cost < $min;
+        }
+        my @todo;
+        for my $ani ( $animates->@* ) {
+            my $when = $ani->cost - $min;
+            if ( $when <= 0 ) {
+                push @todo, $ani;
+            } else {
+                $ani->cost($when);
+            }
+        }
+        # implicit ordering by order in animates list. may need a
+        # shuffle if less predictability is desired
+        for my $ani (@todo) {
+            my $flag = $ani->flag;
+            say "  #$ani moves (cur speed $flag)" if $Flag_Verbose;
+            cost_cast($animates);
+            $flag = $ani->flag;
+            # an enum or hash might better collect these cost values
+            # that would otherwise be scattered across a large code
+            # base. especially if the numbers all need to change
+            $ani->cost( $flag == FAST ? 10 : $flag == SLOW ? 40 : 20 );
+        }
+    }
+}
+
+sub cost_cast {
+    my ($animates) = @_;
+
+    my $target  = int rand $animates->@*;
+    my $curflag = $animates->[$target]->flag;
+
+    if ( int rand(2) ) {
+        return if $curflag == FAST;
+        $animates->[$target]->flag(FAST);
+        my $cost = $animates->[$target]->cost;
+        if ( $cost > 0 ) {
+            $cost = $cost >> 1;
+            $cost = 1 if $cost < 1;
+            $animates->[$target]->cost($cost);
+        }
+        say "    ... casts haste on #$target" if $Flag_Verbose;
+    } else {
+        return if $curflag == SLOW;
+        $animates->[$target]->flag(SLOW);
+        my $cost = $animates->[$target]->cost;
+        if ( $cost > 0 ) {
+            $animates->[$target]->cost( $cost << 1 );
+        }
+        say "    ... casts slow on #$target" if $Flag_Verbose;
+    }
+
+    return;
+}
+
+sub do_flag {
+    say "Circular Flags" if $Flag_Verbose;
+
+    my $animates = make_animates( count => 3 );
+
+    for my $turn ( 1 .. $Flag_Turns ) {
+        say "Turn $turn" if $Flag_Verbose;
+
+        my $mod = $turn % 7;
+        my @todo;
+        for my $ani ( $animates->@* ) {
+            my $flag = $ani->flag;
+            if ( $flag == SLOW and $mod == 3 ) {
+                push @todo, $ani;
+            } else {
+                my $lastbit = $mod & 1;
+                if ( $flag == NORM and $lastbit == 1 ) {
+                    push @todo, $ani;
+                } elsif ( $flag == FAST and $lastbit == 0 ) {
+                    push @todo, $ani;
+                }
+            }
+        }
+        # NOTE this may need a sort (by name) or shuffle for more or
+        # less predictability
+        for my $ani (@todo) {
+            my $flag = $ani->flag;
+            say "  #$ani moves (cur speed $flag)" if $Flag_Verbose;
+            flag_cast($animates);
+        }
+    }
+}
+
+sub flag_cast {
+    my ($animates) = @_;
+
+    my $target  = int rand $animates->@*;
+    my $curflag = $animates->[$target]->flag;
+    my $newflag;
+
+    if ( int rand(2) ) {
+        return if $curflag == FAST;
+        $newflag = FAST;
+        $animates->[$target]->flag(FAST);
+        say "    ... casts haste on #$target" if $Flag_Verbose;
+    } else {
+        return if $curflag == SLOW;
+        $newflag = SLOW;
+        $animates->[$target]->flag(SLOW);
+        say "    ... casts slow on #$target" if $Flag_Verbose;
+    }
+
+    # and unlike cbuf we are now done; speed changes to an animate are
+    # determined by the flag-and-modulus math. however! an animate will
+    # never move if a hasted animate casts slow on them (turn 0+0) then
+    # normal speed (turn 0+2), then slow on them (turn 0+4), then normal
+    # on them (turn 1+2), etc. players will find and exploit such. this
+    # might be avoided by disallowing a normal speed spell (but then two
+    # animates could alternate slow/fast spells to lock something down)
+    # or perhaps a cooldown timer or such limits the frequency with
+    # which speed change spells can be cast. but that's papering over a
+    # fault that players will likely find more ways to abuse
+    #
+    #   fast normal fast slow fast normal fast
+    #   0    1      2    3    4    5      6
+
+    return;
+}
+
+sub do_lgpq {
+    say "Circular Flags" if $Flag_Verbose;
+
+    my $animates = make_animates( count => 3 );
+    my $queue    = [];
+    for my $ani ( $animates->@* ) {
+        grpriq_add( $queue, 0, $ani );
+    }
+
+    for my $turn ( 1 .. $Flag_Turns ) {
+        say "Turn $turn" if $Flag_Verbose;
+
+        my ( $todo, $epoch ) = grpriq_min($queue)->@*;
+        # may need sort or shuffle for more or less predictability
+        for my $ani ( $todo->@* ) {
+            my $flag = $ani->flag;
+            say "  #$ani moves (cur speed $flag)" if $Flag_Verbose;
+            lgpq_cast($animates, $todo, $queue, $epoch);
+            $flag = $ani->flag;
+            my $prio = ($flag == FAST ? 10 : $flag == SLOW ? 40 : 20);
+            # abuse cost attribute to store the epoch and priority info
+            $ani->cost([$epoch,$prio]);
+            # NOTE the epoch might wrap if the game goes on for too long
+            # in a language like C and the int type used is too small.
+            # DNS has a trick detailed in some RFC that allows the SOA
+            # serial to wrap around... or walk through $queue and
+            # subtract the minimum priority from all items, which
+            # replicates part of the cost algorithm... maybe instead
+            # just use that?
+            grpriq_add( $queue, $epoch + $prio, $ani );
+        }
+    }
+}
+
+# NOTE TODO incomplete
+sub lgpq_cast {
+    my ($animates, $todo, $queue, $cur_epoch) = @_;
+
+    my $target  = int rand $animates->@*;
+    my $curflag = $animates->[$target]->flag;
+    my $newflag;
+
+    if ( int rand(2) ) {
+        return if $curflag == FAST;
+        $newflag = FAST;
+        $animates->[$target]->flag(FAST);
+        say "    ... casts haste on #$target" if $Flag_Verbose;
+    } else {
+        return if $curflag == SLOW;
+        $newflag = SLOW;
+        $animates->[$target]->flag(SLOW);
+        say "    ... casts slow on #$target" if $Flag_Verbose;
+    }
+
+    # a similar problem as with the circular buffer: an animate may not
+    # be on the queue
+    for my $ani ( $todo->@* ) {
+        return if $target == $ani->name;
+    }
+
+    # apply immediate effect to animate hiding in queue
+    my ($epoch, $prio) = $animates->[$target]->cost->@*;
+    my $remainder = $prio - ($cur_epoch - $epoch);
+
+    # ... TODO now would need to find the animate in the queue, splice
+    # it out, then add a new entry with a suitably modified priority
+    # value. already more work and more state being wrangled than cost
+    # algorithm, so I'd just use that instead
+}
+
+sub make_animates {
+    my (%args) = @_;
+    my @ani;
+    for my $i ( 1 .. $args{count} // 1 ) {
+        # KLUGE name matches the array index to make animate
+        # identification easier
+        push @ani,
+          Animate->new( name => ( $i - 1 ), cost => $args{cost}, flag => NORM );
+    }
+    return \@ani;
+}
+
+sub make_cbuf {
+    my ($size) = @_;
+    my @buf;
+    my $cur  = 0;
+    my %cbuf = (
+        active => sub {
+            my $ret = $buf[$cur];
+            $buf[ $cur++ ] = [];
+            $cur %= $size;
+            return $ret;
+        },
+        insert => sub {
+            my ( $offset, @events ) = @_;
+            push $buf[ ( $cur + $offset - 1 ) % $size ]->@*, @events;
+        },
+        remove => sub {
+            my ($name) = @_;
+            for my $i ( 0 .. $#buf ) {
+                for my $j ( 0 .. $buf[$i]->$#* ) {
+                    if ( $name == $buf[$i][$j]->name ) {
+                        splice $buf[$i]->@*, $j, 1;
+                        # assume animate is only in the buffer once
+                        return;
+                    }
+                }
+            }
+        },
+        # NOTE exposes internals of the closure
+        _DEBUG => sub { \@buf, $cur },
+    );
+    return \%cbuf;
+}
+
+__END__
+
+ * cbuf - not at all flexible. new speeds would need a larger buffer
+   size. immediate speed effects require manual consideration of what
+   changes and maybe fiddling around with entries in the buffer.
+   animates may not be on the buffer; this complicates how they are
+   handled when speed adjustments are necessary
+ * cost - new speeds are easy to add, immediate speed effects are easy
+   to apply
+ * flag - could be abused due to when the speed flag is checked so would
+   need protections against that. not very flexible as new speeds would
+   require rewriting the modulus/flag checking loop and then checking
+   that there isn't anything new that can be abused
+ * lgpq - immediate spell effects require tracking more state
+   (epoch+cost) and code than "cost" needs, TODO complete the
+   implementation then see if a priority queue wins as the number of
+   animates increases? until then, I'll use "cost" where there are fancy
+   spells that need immediate effects, or maybe a cbuf if things will
+   only be simple or the speed of the energy system is somehow critical

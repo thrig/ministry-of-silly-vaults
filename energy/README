@@ -1,2 +1,11 @@
-Sample code for determining when things get to move, for when something
-more complicated than "everything moves each turn" is desired.
+sample code for determining when things get to move, for when something
+more complicated than "everything moves once each turn" is desired
+
+tl;dr you probably want a "cost" or integer based energy system (the
+files cost, energy.c, or integer-energy.lisp), unless someone else has
+found something better
+
+a circular buffer can be fast, but falls apart if you want mages who can
+cast haste spells on other things, and you want that spell to have an
+immediate effect on the target, which is what players will most likely
+expect to happen. cost based systems handle such mages without problems

@@ -1,45 +1,51 @@
 #!/usr/bin/env perl
 #
-# attempt to compare different energy systems using a more or less level
-# playing field (or the Procrustean wedging of them into a turn-based
-# bed). the energy systems are:
+# attempt to compare different energy systems using a somewhat level
+# playing field (or the Procrustean wedging of them into arbitrary
+# shapes of hopefully roughly similar sizes)
 #
-#  1. cost-based. each animate moves when its cost returns to 0; that
+#  1. cost-based, cost. each animate moves when its cost reaches to 0; a
 #     move adds some value to the cost. each turn the minimum cost is
 #     removed from each animate
-#  2. circular buffer. animates to move are inserted as appropriate
-#     somewhere into a circular buffer, with the caveat that without
-#     additional complications no move can be scheduled beyond what the
-#     buffer can hold (the others do not have this restriction)
-#  3. priority queue. a standard priority queue algorithm is used to
-#     schedule events. a turn-based epoch prevents actions with a low
-#     priority from forever drowning out longer events from happening
-#  4. grouping priority queue. events that happen at the same time are
-#     returned in a single set
+#  2. circular buffer, cbuf. animates to move are inserted as
+#     appropriate somewhere into a circular buffer. no move can be
+#     directly scheduled beyond what the buffer can hold (the others do
+#     not have this restriction)
+#  3. priority queue, priq. a standard priority queue algorithm is used
+#     to schedule events. a turn-based epoch prevents actions with a low
+#     priority from forever drowning out longer moves
+#  4. grouping priority queue, lgpq. like previous but moves that happen
+#     at the same priority are returned together
+#  5. circular status flag, flag. animates have a flag indicating their
+#     movement speed, and move in appropriate slots for "normal",
+#     "fast", or "slow". even less flexible than cbuf
 #
 # note that some methods do not allow or would require complications to
 # speed up or slow down an animate; that is, an animate moves, then
-# somewhere before its next move something hits it with a slowing spell,
-# or, worse, a speed up spell
+# before its next move something hits it with a slowing spell, or,
+# worse, a haste spell. but that is not considered here (in the code)
 
 use 5.24.0;
 use warnings;
 use Benchmark qw(cmpthese);
-use List::GroupingPriorityQueue;
+use List::GroupingPriorityQueue qw(grpriq_add grpriq_min);
 use List::Util qw(min shuffle);
 use Queue::Priority;
+
+use constant { SLOW => 0, NORM => 1, FAST => 2 };
 
 package Animate {
     use Moo;
     has qw(name is ro);
     has qw(cost is rw);
+    has qw(flag is rw);
     use overload
       '""'  => sub { $_[0]->name },
       '<=>' => sub { $_[0]->cost <=> $_[1]->cost };
 }
 
 sub make_cbuf {
-    my ( $size ) = @_;
+    my ($size) = @_;
     my @buf;
     my $cur = 0;
     return (
@@ -57,8 +63,27 @@ sub make_cbuf {
 }
 
 sub make_animates {
-    my ( %args ) = @_;
-    [ map Animate->new( name => $_, cost => $args{cost} ), 1 .. $args{count} ]
+    my (%args) = @_;
+    [   map Animate->new( name => $_, cost => $args{cost}, flag => NORM ),
+        1 .. $args{count}
+    ];
+}
+
+sub run_cbuf {
+    my ( $bufsize, $animates, $moves, $costfn ) = @_;
+    my ( $active, $insert ) = make_cbuf($bufsize);
+    for my $ani ( $animates->@* ) {
+        $insert->( 1, $ani );
+    }
+    my $turn = 0;
+  TURN: while ( $moves > 0 ) {
+        $turn++;
+        my $todo = $active->() // next TURN;
+        for my $ani ( shuffle $todo->@* ) {
+            $insert->( $costfn->(), $ani );
+            $moves--;
+        }
+    }
 }
 
 sub run_cost {
@@ -83,39 +108,59 @@ sub run_cost {
     }
 }
 
-sub run_cbuf {
-    my ( $bufsize, $animates, $moves, $costfn ) = @_;
-    my ( $active, $insert ) = make_cbuf( $bufsize );
-    for my $ani ( $animates->@* ) {
-        $insert->( 1, $ani );
-    }
+#   fast normal fast slow fast normal fast
+#   0    1      2    3    4    5      6
+#   0000 0001   0010 0011 0100 0101   0110
+sub run_flag {
+    my ( $animates, $moves, $costfn ) = @_;
     my $turn = 0;
-  TURN: while ( $moves > 0 ) {
-        $turn++;
-        my $todo = $active->() // next TURN;
-        for my $ani ( shuffle $todo->@* ) {
-            $insert->( $costfn->(), $ani );
+    while ( $moves > 0 ) {
+        my $mod = $turn % 7;
+        my @todo;
+        for my $ani ( $animates->@* ) {
+            my $flag = $ani->flag;
+            if ( $flag == SLOW and $mod == 3 ) {
+                push @todo, $ani;
+            } else {
+                my $lastbit = $mod & 1;
+                if ( $flag == NORM and $lastbit == 1 ) {
+                    push @todo, $ani;
+                } elsif ( $flag == FAST and $lastbit == 0 ) {
+                    push @todo, $ani;
+                }
+            }
+        }
+        for my $ani ( shuffle @todo ) {
+            # most animates would be normal speed, but we call the
+            # costfn for better parity with the other routines
+            $ani->flag( $costfn->() % 3 );
             $moves--;
         }
+        $turn++;
+        # alternative: the counter will never wrap around because the
+        # game completes before (or when) that happens. more of a
+        # concern for long running games in languages like C and where
+        # the counter is something smaller than a uint64_t
+        $turn = 0 if $turn >= 7;
     }
 }
 
+# the OO interface of this module is still lots faster than priq, so
+# instead uses the function interface for better comparison with the
+# fast cbuf/cost/flag routines
 sub run_lgpq {
     my ( $animates, $moves, $costfn ) = @_;
-    # use OO interface so not comparing the slOOw method calls of
-    # Queue::Priority with fast grpriq_add function calls
-    my $q = List::GroupingPriorityQueue->new;
+    my $queue = [];
     for my $ani ( $animates->@* ) {
-        $q->insert( $ani, $ani->cost );
+        grpriq_add( $queue, $ani->cost, $ani );
     }
-    my $turn = 0;
     while ( $moves > 0 ) {
-        my $aniturn = $q->min;
-        $turn = $aniturn->[1];
+        my $aniturn = grpriq_min($queue);
+        my $turn    = $aniturn->[1];
         for my $ani ( shuffle $aniturn->[0]->@* ) {
             my $newcost = $turn + $costfn->();
-            $ani->cost( $newcost );
-            $q->insert( $ani, $newcost );
+            $ani->cost($newcost);
+            grpriq_add( $queue, $newcost, $ani );
             $moves--;
         }
     }
@@ -127,35 +172,41 @@ sub run_priq {
     for my $ani ( $animates->@* ) {
         $q->insert($ani);
     }
-    my $turn = 0;
     while ( $moves > 0 ) {
         my @todo = $q->remove;
-        $turn = $todo[0]->cost;
+        my $turn = $todo[0]->cost;
         push @todo, $q->remove while !$q->is_empty and $q->peek->cost == $turn;
         for my $ani ( shuffle @todo ) {
             $ani->cost( $turn + $costfn->() );
-            $q->insert( $ani );
+            $q->insert($ani);
             $moves--;
         }
     }
 }
 
 sub compare {
-    my ( %args ) = @_;
+    my (%args) = @_;
     cmpthese(
         $args{iters},
         {   cost => sub {
-                run_cost( make_animates( count => $args{ani_count}, cost => 0 ), $args{moves}, $args{costfn} );
+                run_cost( make_animates( count => $args{ani_count}, cost => 0 ),
+                    $args{moves}, $args{costfn} );
             },
             cbuf => sub {
                 run_cbuf( $args{bufsize}, make_animates( count => $args{ani_count}, cost => 0 ),
                     $args{moves}, $args{costfn} );
             },
+            flag => sub {
+                run_flag( make_animates( count => $args{ani_count}, cost => 1 ),
+                    $args{moves}, $args{costfn} );
+            },
             lgpq => sub {
-                run_lgpq( make_animates( count => $args{ani_count}, cost => 1 ), $args{moves}, $args{costfn} );
+                run_lgpq( make_animates( count => $args{ani_count}, cost => 1 ),
+                    $args{moves}, $args{costfn} );
             },
             priq => sub {
-                run_priq( make_animates( count => $args{ani_count}, cost => 1 ), $args{moves}, $args{costfn} );
+                run_priq( make_animates( count => $args{ani_count}, cost => 1 ),
+                    $args{moves}, $args{costfn} );
             },
         }
     );
@@ -168,9 +219,35 @@ sub rand_bi { 1 + int rand 8 }
 # for the circular buffer and must be at least as large as what the
 # costfn returns
 compare(
-    iters     => -10,
-    ani_count => 100,
-    moves     => 1000,
+    iters     => -20,
+    ani_count => 20,
+    moves     => 100,
     costfn    => \&rand_bi,
     bufsize   => 8
 );
+
+__END__
+
+  % perl comparison
+         Rate priq lgpq cost flag cbuf
+  priq  439/s   -- -77% -79% -87% -88%
+  lgpq 1902/s 333%   -- -11% -44% -50%
+  cost 2131/s 385%  12%   -- -37% -44%
+  flag 3391/s 672%  78%  59%   -- -10%
+  cbuf 3777/s 760%  99%  77%  11%   --
+
+cbuf -- fast but is limited to the size of the buffer, so would require
+  some sort of event for "this happens in X turns" that may need to
+  schedule itself multiple times (more code, slower), or must accept the
+  limit that nothing can take longer than (1- bufsize)
+cost -- decently fast (Angband and other roguelikes use cost
+  based systems)
+flag -- about as fast as cbuf though would better support haste/slow
+  spells though is very inflexible
+lgpq -- more or less tailor made for this situation and is about as fast
+  as cost. however, cost will probably better support haste/slow spells
+  than a priority queue
+priq -- slow. probably due to the OO that the other routines have less
+  of (don't care enough to profile it to figure out where and why).
+  List::PriorityQueue might be a better option but does not return the
+  priority values, though does allow an event to be updated
