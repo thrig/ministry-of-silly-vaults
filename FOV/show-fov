@@ -6,9 +6,12 @@ use 5.24.0;
 use warnings;
 use Data::Dumper;
 use Game::RaycastFOV qw(circle raycast swing_circle);
+use Getopt::Long qw(GetOptions);
 use Math::Trig qw(:pi deg2rad rad2deg);
 use lib '.';
 use Misc;
+
+GetOptions( 'fill|F=f' => \my $Flag_FillPercent ) or exit 1;
 
 our $MAX_X = 78;
 our $MAX_Y = 23;
@@ -24,7 +27,7 @@ print clear_screen, t_norm;
 my @map;
 for my $r (0 .. 23) {
     for my $c (0 .. 40) {
-        my $ch = rand() > 0.5 ? '#' : '.';
+        my $ch = rand() < $Flag_FillPercent ? '#' : '.';
         $map[$r][$c] = $ch;
         $map[$r][ $c + 40 ] = $ch;
     }
