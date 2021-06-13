@@ -31,15 +31,6 @@
   (declare (cons point))
   (mapcar (lambda (h) (make-agent :position point :heading h)) +headings+))
 
-; mostly macro practice
-(defmacro animate (start update)
-  (let ((label (gensym)) (queue (gensym)))
-    `(prog ((,queue ,start))
-       ,label
-           (and (null ,queue) (return))
-           (setq ,queue (mapcan ,update ,queue))
-           (go ,label))))
-
 (defun nudge (agent orig)
   (let* ((dir (random-turn (agent-heading agent)))
          (nudge (add-points orig dir)))

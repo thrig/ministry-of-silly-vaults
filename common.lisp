@@ -15,6 +15,15 @@
                  set-point set-point-row set-point-col draw-at draw-at-point
                  random-point get-obj-at random-between p-inbounds?))
 
+; mostly macro practice
+(defmacro animate (start update)
+  (let ((label (gensym)) (queue (gensym)))
+    `(prog ((,queue ,start))
+       ,label
+           (and (null ,queue) (return))
+           (setq ,queue (mapcan ,update ,queue))
+           (go ,label))))
+
 ;;; these are '(0 . 0) points (row . col)
 (defun copy-point (point)
   (declare (cons point))
@@ -215,6 +224,18 @@
   (the boolean
        (and (p-inbounds? (rect-p1 rect))
             (p-inbounds? (rect-p2 rect)))))
+
+(defmacro with-adjacent (point new-point &body body)
+  (declare (cons point))
+  `(dolist
+       (offsets
+        '((0 . -1) (-1 . -1) (-1 . 0) (-1 . 1) (0 . 1) (1 . 1) (1 . 0)
+          (1 . -1)))
+     (let ((,new-point
+            (cons (+ (car ,point) (car offsets))
+                  (+ (cdr ,point) (cdr offsets)))))
+       (when (p-inbounds? ,new-point)
+         ,@body))))
 
 (defun points-adjacent-to (point)
   (declare (cons point))

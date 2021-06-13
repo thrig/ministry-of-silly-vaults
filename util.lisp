@@ -36,6 +36,8 @@
   (maphash #'(lambda (k v)
                (declare (ignore v))
                (remhash k table)) table))
+(defmacro hashkeys (hash)
+  `(loop for x being the hash-keys in ,hash collect x))
 (defun show-hash (table)
   (maphash #'(lambda (k v)
                (format t "~a=~a~%" k v)) table))
