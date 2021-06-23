@@ -11,26 +11,26 @@
 
 (defconstant +tau+ (* 2 pi))
 
-(declaim (inline copy-point make-point point-row point-col point-major
-                 set-point set-point-row set-point-col draw-at draw-at-point
-                 random-point get-obj-at random-between p-inbounds?))
-
-; mostly macro practice
-(defmacro animate (start update)
-  (let ((label (gensym)) (queue (gensym)))
-    `(prog ((,queue ,start))
-       ,label
-           (and (null ,queue) (return))
-           (setq ,queue (mapcan ,update ,queue))
-           (go ,label))))
+(declaim
+ (inline copy-point incf-point make-point nreverse-point point-row point-col
+  point-major set-point set-point-row set-point-col draw-at draw-at-point
+  random-point get-obj-at random-between p-inbounds?))
 
 ;;; these are '(0 . 0) points (row . col)
 (defun copy-point (point)
   (declare (cons point))
   (the cons (cons (car point) (cdr point))))
+(defun incf-point (p1 p2)
+  (declare (cons p1 p2))
+  (incf (car p1) (car p2))
+  (incf (cdr p1) (cdr p2))
+  p1)
 (defun make-point (row col)
   (declare (fixnum row col))
   (the cons (cons row col)))
+(defun nreverse-point (point)
+  (declare (cons point))
+  (rotatef (car point) (cdr point)))
 (defun point-row (point)
   (the fixnum (car point)))
 (defun point-col (point)
@@ -374,3 +374,19 @@
       (if (null ret)
         (return-from col-walk results)
         (push ret results)))))
+
+;;; corridors.lisp code shared by other files
+
+; mostly macro practice
+(defmacro animate (start update)
+  (let ((label (gensym)) (queue (gensym)))
+    `(prog ((,queue ,start))
+       ,label
+           (and (null ,queue) (return))
+           (setq ,queue (mapcan ,update ,queue))
+           (go ,label))))
+
+(defun move-agent (agent)
+  (let ((point (agent-position agent)))
+    (incf-point point (agent-heading agent))
+    point))

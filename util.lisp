@@ -166,6 +166,13 @@
   (declare (fixnum n))
   (the fixnum (if (minusp n) -1 1)))
 
+; probably should have had this years ago instead of all those other
+; more complicated things
+(defun roll (count sides &optional (plus 0))
+  (loop :repeat count
+        :sum (random sides) :into total
+        :finally (return (+ count total plus))))
+
 ; from pseudo-random-dist/skew-roll.lisp
 (defun skew-roll (times sides &key (drop-lo 0) (drop-hi 0))
   (when (>= (+ drop-lo drop-hi) times)

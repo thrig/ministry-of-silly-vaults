@@ -1,5 +1,6 @@
-;;;;; draw branching corridors and ensure that they are all connected.
-;;;;; probably still too many dead ends (unless you want those)
+; draw branching corridors and ensure that they are all connected.
+; probably still too many dead ends (unless you want those). see also
+; blobs.lisp and klaji.lisp for related ideas
 
 (defparameter +rows+ 23)
 (defparameter +cols+ 79)
@@ -20,16 +21,12 @@
   (make-rectangle (make-point 1 1) (make-point (- +rows+ 2) (- +cols+ 2))))
 
 (defparameter +headings+ '((-1 . 0) (1 . 0) (0 . 1) (0 . -1)))
-(defun random-direction () (random-list-item +headings+))
 
 (defstruct agent (position nil) (heading nil) (moves 0))
-(defun move-agent (agent)
-  (declare (agent agent))
-  (the cons (add-points (agent-position agent) (agent-heading agent))))
-; always four agents from a starting point
+
 (defun new-agents-at (point)
   (declare (cons point))
-  (mapcar (lambda (h) (make-agent :position point :heading h)) +headings+))
+  (mapcar (lambda (h) (make-agent :position (copy-point point) :heading h)) +headings+))
 
 (defun nudge (agent orig)
   (let* ((dir (random-turn (agent-heading agent)))
@@ -54,7 +51,7 @@
            ; kill at border and generate turned agent to limit dead ends
            ; (ideally this would generate an agent that turns away from
            ; the border, but that's more work)
-           (list (make-agent :position (agent-position agent)
+           (list (make-agent :position (copy-point (agent-position agent))
                              :heading (random-turn (agent-heading agent)))))
           ; whoops something was already here
           ((eq *floor* (get-point-obj new-point)) nil)
@@ -66,7 +63,7 @@
                    (progn
                      (setf alive nil)
                      ; dead, create turned agent to help limit dead ends
-                     (push (make-agent :position new-point
+                     (push (make-agent :position (copy-point new-point)
                                        :heading (random-turn
                                                   (agent-heading agent)))
                            agents))
@@ -74,10 +71,10 @@
                      ; spawn new agents heading in new directions?
                      (when (zerop (random 6))
                        (let ((dir (random-turn (agent-heading agent))))
-                         (push (make-agent :position new-point
+                         (push (make-agent :position (copy-point new-point)
                                            :heading dir) agents)
                          (when (zerop (random 6))
-                           (push (make-agent :position new-point
+                           (push (make-agent :position (copy-point new-point)
                                              :heading (reverse-direction dir))
                                  agents))))
                      ; nudge the corridor to add variety? increased odds
