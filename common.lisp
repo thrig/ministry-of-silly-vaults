@@ -14,7 +14,7 @@
 (declaim
  (inline copy-point incf-point make-point nreverse-point point-row point-col
   point-major set-point set-point-row set-point-col draw-at draw-at-point
-  random-point get-obj-at random-between p-inbounds?))
+  random-point get-obj-at random-between inbounds? p-inbounds?))
 
 ;;; these are '(0 . 0) points (row . col)
 (defun copy-point (point)
@@ -215,6 +215,10 @@
               :element-type 'character
               :initial-element (if (functionp obj) (funcall obj) obj)))
 
+(defun inbounds? (row col)
+  (the boolean
+       (array-in-bounds-p *board* row col)))
+
 (defun p-inbounds? (point)
   (declare (cons point))
   (the boolean
@@ -225,17 +229,44 @@
        (and (p-inbounds? (rect-p1 rect))
             (p-inbounds? (rect-p2 rect)))))
 
-(defmacro with-adjacent (point new-point &body body)
-  (declare (cons point))
-  `(dolist
-       (offsets
-        '((0 . -1) (-1 . -1) (-1 . 0) (-1 . 1) (0 . 1) (1 . 1) (1 . 0)
-          (1 . -1)))
-     (let ((,new-point
-            (cons (+ (car ,point) (car offsets))
-                  (+ (cdr ,point) (cdr offsets)))))
-       (when (p-inbounds? ,new-point)
-         ,@body))))
+; 8-way adjacent
+(defmacro with-adjacent (row col newrow newcol &body body)
+  (let ((offset (gensym)))
+    `(dolist
+         (,offset
+          '((0 . -1) (-1 . -1) (-1 . 0) (-1 . 1) (0 . 1) (1 . 1) (1 . 0)
+            (1 . -1)))
+       (let ((,newrow (+ ,row (car ,offset)))
+             (,newcol (+ ,col (cdr ,offset))))
+         (when (inbounds? ,newrow ,newcol) ,@body)))))
+
+(defmacro with-adjacent-diagonal (row col newrow newcol &body body)
+  (let ((offset (gensym)))
+    `(dolist (,offset '((-1 . -1) (-1 . 1) (1 . 1) (1 . -1)))
+       (let ((,newrow (+ ,row (car ,offset)))
+             (,newcol (+ ,col (cdr ,offset))))
+         (when (inbounds? ,newrow ,newcol) ,@body)))))
+
+(defmacro with-adjacent-square (row col newrow newcol &body body)
+  (let ((offset (gensym)))
+    `(dolist (,offset '((0 . -1) (-1 . 0) (0 . 1) (1 . 0)))
+       (let ((,newrow (+ ,row (car ,offset)))
+             (,newcol (+ ,col (cdr ,offset))))
+         (when (inbounds? ,newrow ,newcol) ,@body)))))
+
+(defmacro with-n-random-points
+          ((row col n &key (rows +rows+) (cols +cols+)) &body body)
+  (let ((total (gensym)) (remain (gensym)) (maxcol (gensym)))
+    `(do* ((,total (* ,rows ,cols) (1- ,total))
+           (,remain (min ,n ,total))
+           (,row 0) (,col 0) (,maxcol (1- ,cols)))
+          ((<= ,remain 0))
+       (when (< (random 1.0) (/ ,remain ,total))
+         (progn ,@body)
+         (decf ,remain))
+       (if (>= ,col ,maxcol)
+           (progn (setf ,col 0) (incf ,row))
+           (incf ,col)))))
 
 (defun points-adjacent-to (point)
   (declare (cons point))
@@ -341,21 +372,20 @@
                                       (- cols border))))))
       (make-rectangle p1 p2))))
 
-; NOTE returns the list of points high to low, NREVERSE or shuffle the
-; points if necessary
-(defun n-random-points (n &key (rows (1- +rows+)) (cols (1- +cols+)))
+; NOTE the points run from high to low, NREVERSE or shuffle if necessary
+(defun n-random-points (n &key (rows +rows+) (cols +cols+))
   (declare (fixnum n rows cols))
-  (do* ((points nil)
+  (do* ((points)
         (total (* rows cols) (1- total))
-        (left (min n total))
-        (r 0) (c 0))
-    ((= 0 left) (the list points))
-    (when (< (random 1.0) (/ left total))
-      (push (make-point r c) points)
-      (decf left))
-    (if (= cols c)
-      (progn (setf c 0) (incf r))
-      (incf c))))
+        (remain (min n total))
+        (row 0) (col 0) (maxcol (1- cols)))
+    ((<= remain 0) (the list points))
+    (when (< (random 1.0) (/ remain total))
+      (push (make-point row col) points)
+      (decf remain))
+    (if (>= col maxcol)
+      (progn (setf col 0) (incf row))
+      (incf col))))
 
 (defun row-walk (row col fn)
   (declare (fixnum row col))

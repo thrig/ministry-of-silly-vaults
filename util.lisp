@@ -202,10 +202,10 @@
       (tagbody ,label
         (if ,expr (progn ,@body (go ,label)))))))
 
-(defmacro with-each-cell (array copy n &body body)
-  (let ((len (gensym)) (line (gensym)))
+(defmacro with-each-cell (array line n &body body)
+  (let ((len (gensym)))
     `(let* ((,len (array-total-size ,array))
-            (,copy
+            (,line
              (make-array ,len :element-type (array-element-type ,array)
                          :displaced-to ,array)))
        (dotimes (,n ,len) ,@body))))
