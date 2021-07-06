@@ -1,6 +1,7 @@
 (declaim (inline decay sign-of random-list-item range))
 
-; more or less like how Perl does it
+; more or less like how Perl does it (but see "Division and Modulus for
+; Computer Scientists" PDF on the uebtubes)
 (defun % (a b)
   (mod (truncate a) (truncate b)))
 
@@ -9,6 +10,16 @@
   (dotimes (i n)
     (and (< (random 1.0) p) (incf x)))
   (the fixnum x))
+
+; randomly n such that n is more likely to be closer to n than 0
+(defun monte-carlo (n &key (trials 1))
+  (block nil
+    (tagbody
+     start
+      (let ((pick (random n)))
+        (loop :repeat trials
+              :do (when (>= (random n) pick) (go start)))
+        (return pick)))))
 
 (defun clear-array (a fill)
   (let* ((len (array-total-size a))

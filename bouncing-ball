@@ -1,0 +1,97 @@
+#!/usr/bin/env perl
+#
+# bouncing-ball - animate bouncing balls in a terminal
+
+use 5.32.0;
+use warnings;
+BEGIN { die "STDIN is not a terminal" unless -t STDIN }
+
+use IO::Termios 0.07 -upgrade;
+use Object::Pad 0.43;
+use Time::HiRes qw(alarm);
+use Term::Size 0.208 ();
+
+# ANSI or XTerm Control Sequences - https://invisible-island.net/xterm/
+sub ALT_SCREEN ()   { "\e[?1049h" }
+sub CLEAR_SCREEN () { "\e[1;1H\e[2J" }
+sub HIDE_CURSOR ()  { "\e[?25l" }
+sub HIDE_POINTER () { "\e[>2p" }         # hide screen gnat
+sub SHOW_CURSOR ()  { "\e[?25h" }
+sub TERM_NORM ()    { "\e[m" }
+sub UNALT_SCREEN () { "\e[?1049l" }
+
+sub at { "\e[" . $_[1] . ';' . $_[0] . 'H' }
+
+class Vector :strict(params) {
+    has $x :mutator :param = 0;
+    has $y :mutator :param = 0;
+
+    method add( $dx, $dy ) { $x += $dx; $y += $dy; $self }
+    method values { $x, $y }
+}
+
+class Thingy :strict(params) {
+    has $velocity :reader :param = Vector->new;
+    has $position :reader :param = Vector->new;
+
+    method update { $position->add( $velocity->values ); $self }
+}
+
+my ( $cols, $rows ) = Term::Size::chars;
+die "could not determine terminal size\n"
+  unless defined $cols and defined $rows;
+
+my @animates = map make_ball(), 1 .. 3;
+
+my $Orig_Termios = STDIN->getattr;
+STDIN->cfmakeraw;
+STDOUT->autoflush(1);
+print ALT_SCREEN, CLEAR_SCREEN, HIDE_CURSOR, HIDE_POINTER, TERM_NORM;
+
+my $to_erase = '';
+while (1) {
+    my $remove = $to_erase;
+    my $add    = $to_erase = '';
+    for my $ani (@animates) {
+        $ani->update;
+
+        my ( $x, $y ) = $ani->position->values;
+        if ( $x <= 1 or $x >= $cols ) { $ani->velocity->x *= -1 }
+        if ( $y <= 1 or $y >= $rows ) { $ani->velocity->y *= -1 }
+
+        my $pos = at( $x, $y );
+        $add      .= $pos . '*';
+        $to_erase .= $pos . ' ';
+    }
+    print $remove, $add;
+
+    eval {
+        local $SIG{ALRM} = sub { die "alarm\n" };
+        alarm 0.02;
+        sysread STDIN, my $ch, 1;
+        exit;    # on "any" key being pressed
+        alarm 0;
+    };
+}
+
+sub make_ball {
+    my @velo;
+    for my $i ( 0 .. 1 ) { $velo[$i] = rand() > 0.5 ? 1 : -1 }
+    return Thingy->new(
+        position => Vector->new( x => within( 1, $cols ), y => within( 1, $rows ) ),
+        velocity => Vector->new( x => $velo[0],           y => $velo[1] ),
+    );
+}
+
+sub within {
+    my ( $min, $max ) = @_;
+    my $range = $max - $min - 1;
+    1 + $min + int rand $range;
+}
+
+END {
+    if ( defined $Orig_Termios ) {
+        print SHOW_CURSOR, UNALT_SCREEN;
+        STDIN->setattr($Orig_Termios);
+    }
+}

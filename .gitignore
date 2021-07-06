@@ -8,6 +8,7 @@
 *.o
 *.out
 *.tex.bak
+TODO
 cone-geometry
 debug
 roguememory
