@@ -27,6 +27,9 @@ dijkstramap.fasl: dijkstramap.lisp
 
 dijkstramap.pdf: dijkstramap.tex
 
+dots: dots.c
+	$(CC) $(CFLAGS) -lm dots.c -o dots
+
 linewalker.lisp: util.fasl common.fasl
 
 noise.lisp: util.fasl common.fasl
