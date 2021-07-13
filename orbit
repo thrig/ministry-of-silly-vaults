@@ -12,7 +12,7 @@ use Math::Trig qw(:pi rad2deg);
 use Object::Pad 0.43;
 use POSIX ();
 use Syntax::Keyword::Match;
-use Time::HiRes qw(CLOCK_MONOTONIC clock_gettime sleep);
+use Time::HiRes 1.77 qw(CLOCK_MONOTONIC clock_gettime sleep);
 
 # TWEAK (this needs (considering the mass of the objects involved) to
 # produce suitable accelerations for the terminal size involved)
@@ -256,9 +256,10 @@ sub update_player ($ani) {
     # right and up
     my $heading = sprintf "%.f", rad2deg( $ani->heading );
     $heading = 360 - $heading if $heading != 0;
+
     addstring(
-        $LINES - 1, 1,                 sprintf "%3.f vel %4.2f,%4.2f pos %4.2f,%4.2f",
-        $heading,   $ani->velocity->x, -1 * $ani->velocity->y,
+        $LINES - 1, 1, sprintf " %3.f vel %-5.2f,%-5.2f pos %-5.1f,%-5.1f",
+        $heading, $ani->velocity->x, -1 * $ani->velocity->y,
         $ani->position->x, $ani->position->y
     );
 }

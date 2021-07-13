@@ -21,6 +21,6 @@ requires 'POSIX';
 requires 'Queue::Priority';
 requires 'Syntax::Keyword::Match';
 requires 'Term::Size';
-requires 'Time::HiRes';
+requires 'Time::HiRes', '>= 1.77';
 requires 'Types::Standard';
 requires 'Variable::Magic';
