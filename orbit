@@ -1,0 +1,266 @@
+#!/usr/bin/env perl
+#
+# orbit - gravity practice. There are things to TWEAK, for example the
+# keys used, which are hjkl to rotate and speed up/slow down (shift to
+# do moreso). I guess one goal would be to navigate into a stable(???)
+# orbit around the attractor. The numbers suit a big terminal (170x58)
+
+use 5.32.0;
+use warnings;
+use Curses;
+use Math::Trig qw(:pi rad2deg);
+use Object::Pad 0.43;
+use POSIX ();
+use Syntax::Keyword::Match;
+use Time::HiRes qw(CLOCK_MONOTONIC clock_gettime sleep);
+
+# TWEAK (this needs (considering the mass of the objects involved) to
+# produce suitable accelerations for the terminal size involved)
+my $Grav_Const = 1e-1;
+
+class Vector :strict(params) {
+    has $x :mutator :param = 0;
+    has $y :mutator :param = 0;
+
+    method add( $dx, $dy ) { $x += $dx; $y += $dy; $self }
+    method sub( $dx, $dy ) { $x -= $dx; $y -= $dy; $self }
+    method mul( $dx, $dy ) { $x *= $dx; $y *= $dy; $self }
+    method clone { Vector->new( x => $x, y => $y ) }
+    method normalize( $h = sqrt( $x**2 + $y**2 ) ) {
+        unless ( $h == 0 ) { $x /= $h; $y /= $h }
+        $self;
+    }
+    method magnitude { sqrt( $x**2 + $y**2 ) }
+    method zero { $x = $y = 0; $self }
+    method values { $x, $y }
+}
+class Attractor :strict(params) {
+    has $mass     :mutator :param = 40;            # TWEAK
+    has $position :reader  :param = Vector->new;
+    has $display  :reader  :param = '*';
+
+    method gravity($obj) {
+        my $vec = $position->clone;
+        $vec->sub( $obj->position->values );
+        my $distance = $vec->magnitude;
+        # KLUGE avoid "time warp" acceleration when get too close. somewhat.
+        $distance = 1 if $distance < 1;
+        $vec->normalize($distance);
+        my $mag = $Grav_Const * $mass * $obj->mass / $distance**2;
+        $vec->mul( $mag, $mag )->values;
+    }
+}
+
+class Thingy :strict(params) {
+    has $mass     :mutator :param = 2;             # TWEAK
+    has $heading  :mutator :param = 0;
+    has $accel    :reader  :param = Vector->new;
+    has $velocity :reader  :param = Vector->new;
+    has $position :reader  :param = Vector->new;
+    has $interact :mutator :param;
+    has $display  :reader  :param = '@';
+
+    method apply_force( $dx, $dy ) {
+        $accel->add( map { $_ / $mass } $dx, $dy );
+        $self;
+    }
+    method update {
+        $velocity->add( $accel->values );
+        $position->add( $velocity->values );
+        $accel->zero;
+        $self;
+    }
+}
+
+initscr;
+curs_set(0);
+noecho();
+keypad(1);
+nodelay(1);
+leaveok(1);
+nodelay(1);
+
+my $BOARD_LINES = $LINES - 1;
+my $BOARD_COLS  = $COLS;
+my $board       = newwin( $BOARD_LINES, $BOARD_COLS, 0, 0 );
+leaveok( $board, 1 );
+
+my @animates = Thingy->new(
+    interact => \&update_player,
+    position => Vector->new(
+        x => within( 1, $BOARD_COLS - 1 ),
+        y => within( 1, $BOARD_LINES - 1 )
+    ),
+);
+
+# TWEAK attractor near the edge of the board don't work too good due to
+# the wrap-around not applying to gravity (probably instead need to
+# center on the player and then redraw everything around it)
+my @attractors = Attractor->new(
+    position => Vector->new(
+        x => middleof( $BOARD_COLS,  5 ),
+        y => middleof( $BOARD_LINES, 5 )
+    ),
+);
+
+title_screen();
+
+hline( $LINES - 1, 0, '_', $COLS );
+for my $g (@attractors) {
+    addch( $board, reverse( map int, $g->position->values ), $g->display );
+}
+
+animate(
+    0.1,
+    sub {
+        for my $ani (@animates) {
+            # trail for where they've been
+            addch( $board, reverse( map int, $ani->position->values ), '.' );
+
+            for my $g (@attractors) {
+                my ( $x, $y ) = $g->gravity($ani);
+                $ani->accel->add( $x, $y );
+            }
+
+            $ani->update;
+            $ani->position->x = constrain( $ani->position->x, $BOARD_COLS );
+            $ani->position->y = constrain( $ani->position->y, $BOARD_LINES );
+            addch( $board, reverse( map int, $ani->position->values ), $ani->display );
+        }
+        for my $g (@attractors) {
+            addch( $board, reverse( map int, $g->position->values ), $g->display );
+        }
+        refresh($board);
+        # a human will likely have trouble operating multiple
+        # animates at once
+        for my $ani (@animates) { $ani->interact->($ani) }
+
+        return 1;
+    }
+);
+bail_out();
+
+########################################################################
+#
+# SUBROUTINES
+
+sub animate ( $refresh, $fn ) {
+    while (1) {
+        return unless $fn->();
+        refresh_delay($refresh);
+    }
+}
+
+sub bail_out {
+    curs_set(1);
+    endwin;
+    exit;
+}
+
+sub constrain ( $x, $limit ) {
+    my $newx = POSIX::fmod( $x, $limit );
+    $newx += $limit if $newx < 0;
+    $newx;
+}
+
+sub emit_center ( $msg, $line = int( $LINES / 2 ) ) {
+    my $mlen = length($msg) / 2;
+    addstring( $line, int( $COLS / 2 - $mlen ), $msg );
+}
+
+sub middleof ( $n, $rolls = 4 ) {
+    my $sum   = $rolls;
+    my $sides = $n / $rolls;
+    for ( 1 .. $rolls ) { $sum += rand $sides }
+    int $sum;
+}
+
+sub refresh_delay ($refresh) {
+    state $mark  = clock_gettime(CLOCK_MONOTONIC);
+    state $extra = 0;
+
+    my $delay = $refresh - ( clock_gettime(CLOCK_MONOTONIC) - $mark ) - $extra;
+    if ( $delay > 0 ) {
+        $extra = sleep($delay) - $refresh;
+        $extra = 0 if $extra < 0;
+    }
+    $mark = clock_gettime(CLOCK_MONOTONIC);
+}
+
+sub title_screen {
+    my $offset = int( $LINES / 4 );
+    attron(A_BOLD);
+    emit_center( "It's Not Rocket Science", $offset );
+    attroff(A_BOLD);
+
+    $offset *= 3;
+    animate(
+        0.1,
+        sub {
+            state $iter  = 0;
+            state $onoff = 1;
+            if ( $iter++ % 10 == 0 ) {
+                if ( $onoff++ & 1 ) {
+                    emit_center( "-- Press any key --", $offset );
+                } else {
+                    move( $offset, 0 );
+                    clrtoeol();
+                }
+            }
+            getchar() ? 0 : 1;
+        }
+    );
+}
+
+# TODO h/l should start to spin the toon. probably also need a cursor
+# showing where the toon is pointed at, instead of having to peek at
+# the heading
+# TWEAK some may not want hjkl?
+sub update_player ($ani) {
+    my $ch = getchar;
+    if ( defined $ch ) {
+        match( $ch : eq ) {
+            case ('q') { bail_out() }
+            case ('k') {
+                my $angle = $ani->heading;
+                $ani->apply_force( map { $_ * 0.1 } cos($angle), sin($angle) );
+            }
+            case ('K') {
+                my $angle = $ani->heading;
+                $ani->apply_force( map { $_ * 0.5 } cos($angle), sin($angle) );
+            }
+            case ('h') {
+                $ani->heading = constrain( $ani->heading - 0.261799387799149, pi2 );
+            }
+            case ('H') {
+                $ani->heading = constrain( $ani->heading - 1.57079632679489, pi2 );
+            }
+            case ('l') {
+                $ani->heading = constrain( $ani->heading + 0.261799387799149, pi2 );
+            }
+            case ('L') {
+                $ani->heading = constrain( $ani->heading + 1.57079632679489, pi2 );
+            }
+            case ('j') {
+                my $angle = $ani->heading;
+                $ani->apply_force( map { -$_ * 0.01 } cos($angle), sin($angle) );
+            }
+            case ('J') {
+                my $angle = $ani->heading;
+                $ani->apply_force( map { -$_ * 0.05 } cos($angle), sin($angle) );
+            }
+        }
+    }
+    # this assumes a unit circle so 0 degress points off to the right,
+    # angles increase counter-clockwise, and x and y increase to the
+    # right and up
+    my $heading = sprintf "%.f", rad2deg( $ani->heading );
+    $heading = 360 - $heading if $heading != 0;
+    addstring(
+        $LINES - 1, 1,                 sprintf "%3.f vel %4.2f,%4.2f pos %4.2f,%4.2f",
+        $heading,   $ani->velocity->x, -1 * $ani->velocity->y,
+        $ani->position->x, $ani->position->y
+    );
+}
+
+sub within ( $min, $max ) { 1 + $min + rand( $max - $min - 1 ) }

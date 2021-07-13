@@ -1,4 +1,5 @@
 requires 'Algorithm::BinPack::2D';
+requires 'Curses';
 requires 'Class::MOP';
 requires 'File::Slurper';
 requires 'Function::Parameters';
@@ -16,7 +17,9 @@ requires 'Math::Random::Discrete';
 requires 'Math::Trig';
 requires 'Moo';
 requires 'Object::Pad', '>= 0.43';
+requires 'POSIX';
 requires 'Queue::Priority';
+requires 'Syntax::Keyword::Match';
 requires 'Term::Size';
 requires 'Time::HiRes';
 requires 'Types::Standard';
