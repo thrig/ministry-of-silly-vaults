@@ -65,6 +65,16 @@ class Thingy :strict(params) {
         $self;
     }
     method update {
+        # TWEAK add some resistance to drag on excess velocity. tends to
+        # destabalize orbits, though
+        #my $mag = $velocity->magnitude;
+        #if ($mag > 1.5) {
+        #    my $f = -0.01 * $mag ** 2;
+        #    my $drag = $velocity->clone;
+        #    $drag->normalize;
+        #    $drag->mul( $f, $f );
+        #    $velocity->add( $drag->values );
+        #}
         $velocity->add( $accel->values );
         $position->add( $velocity->values );
         $accel->zero;
@@ -72,14 +82,7 @@ class Thingy :strict(params) {
     }
 }
 
-initscr;
-curs_set(0);
-noecho();
-keypad(1);
-nodelay(1);
-leaveok(1);
-nodelay(1);
-
+curses_init();
 my $BOARD_LINES = $LINES - 1;
 my $BOARD_COLS  = $COLS;
 my $board       = newwin( $BOARD_LINES, $BOARD_COLS, 0, 0 );
@@ -114,9 +117,16 @@ animate(
     0.1,
     sub {
         for my $ani (@animates) {
-            # trail for where they've been
+            # trail for where they've been. slope function over a typical
+            # range of velocity values determines the color to use
+            attron( $board,
+                COLOR_PAIR(
+                    between( 1, 255, $ani->velocity->magnitude * 338.666666666667 - 253 )
+                )
+            );
             addch( $board, reverse( map int, $ani->position->values ), '.' );
 
+            attron( $board, COLOR_PAIR(255) );
             for my $g (@attractors) {
                 my ( $x, $y ) = $g->gravity($ani);
                 $ani->accel->add( $x, $y );
@@ -153,14 +163,50 @@ sub animate ( $refresh, $fn ) {
 
 sub bail_out {
     curs_set(1);
-    endwin;
+    endwin();
     exit;
+}
+
+sub between {
+    my ( $min, $max, $value ) = @_;
+    if ( $value < $min ) {
+        $value = $min;
+    } elsif ( $value > $max ) {
+        $value = $max;
+    }
+    return $value;
 }
 
 sub constrain ( $x, $limit ) {
     my $newx = POSIX::fmod( $x, $limit );
     $newx += $limit if $newx < 0;
     $newx;
+}
+
+sub curses_init {
+    initscr();
+    start_color();
+    curs_set(0);
+    noecho();
+    keypad(1);
+    nodelay(1);
+    leaveok(1);
+
+    # TWEAK and here we assume a 256 color terminal
+    my $j = 237;
+    for my $i ( 1 .. 255 ) {
+        fatal("$j is out of bounds") if $j < 1 or $j > 999;
+        # "The value of first argument must be between 0 and COLORS" "Each
+        # of the last three arguments must be a value between 0 and 1000"
+        init_color( $i, $j, $j, $j );
+
+        # "Color pair 0 is assumed to be white on black, but is actually
+        # whatever the terminal implements before color is initialized" so
+        # we start here from 1, like for the init_color
+        init_pair( $i, $i, 0 );
+
+        $j += 3;
+    }
 }
 
 sub emit_center ( $msg, $line = int( $LINES / 2 ) ) {
@@ -189,6 +235,7 @@ sub refresh_delay ($refresh) {
 
 sub title_screen {
     my $offset = int( $LINES / 4 );
+    attron(COLOR_PAIR(255));
     attron(A_BOLD);
     emit_center( "It's Not Rocket Science", $offset );
     attroff(A_BOLD);
